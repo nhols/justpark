@@ -1,7 +1,7 @@
 import pandas as pd
 import streamlit as st
 
-from data_utils import PERIOD_OPTIONS, clean_data
+from src.data_utils import PERIOD_OPTIONS, clean_data
 from src import viz
 
 st.set_page_config(page_title="JustPark", page_icon=":parking:")

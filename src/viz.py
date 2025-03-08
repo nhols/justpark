@@ -1,7 +1,7 @@
 import pandas as pd
 import streamlit as st
 
-from data_utils import PERIOD_OPTIONS, drop_withdrawals
+from src.data_utils import PERIOD_OPTIONS, drop_withdrawals
 
 
 def earnings_by_period(df: pd.DataFrame, period: str) -> pd.DataFrame:
