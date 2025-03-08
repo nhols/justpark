@@ -3,7 +3,7 @@ import pandas as pd
 PERIOD_OPTIONS = {
     "D": "day",
     "W": "week",
-    "M": "month",
+    "ME": "month",
     "Y": "year",
 }
 

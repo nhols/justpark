@@ -15,6 +15,16 @@ def data_dl_ul():
     return data
 
 
+def metrics(df: pd.DataFrame):
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        viz.total_earnings(df)
+    with col2:
+        viz.total_bookings(df)
+    with col3:
+        viz.earnings_this_tax_year(df)
+
+
 def main():
     with st.sidebar:
         data = data_dl_ul()
@@ -32,6 +42,8 @@ def main():
         value=(df["Date"].min().date(), df["Date"].max().date()),
     )
     df = df[df["Date"].dt.date.between(start_date, end_date)]
+
+    metrics(df)
 
     st.title("Earnings by period")
     period = st.selectbox("Select period", PERIOD_OPTIONS, format_func=lambda x: PERIOD_OPTIONS[x])
