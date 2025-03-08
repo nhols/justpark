@@ -15,7 +15,7 @@ def data_dl_ul():
     return data
 
 
-def app():
+def main():
     with st.sidebar:
         data = data_dl_ul()
 
@@ -45,6 +45,3 @@ def app():
 
     st.title("Raw data")
     st.dataframe(df, hide_index=True)
-
-
-app()
