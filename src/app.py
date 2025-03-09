@@ -59,16 +59,24 @@ def main():
     metrics(df)
 
     st.divider()
-    st.title("Earnings by period")
-    period = st.selectbox("Select period", PERIOD_OPTIONS, format_func=lambda x: PERIOD_OPTIONS[x])
-    viz.earnings_by_period(df, period)
-    st.divider()
-
-    st.title("Cumulative earnings")
-    viz.cumulative_earnings(df)
-    st.divider()
-    st.title("Cumulative balance")
-    viz.cumulative_balance(df)
-
-    st.title("Raw data")
-    st.dataframe(df, hide_index=True)
+    tab1, tab2, tab3, tab4 = st.tabs(
+        [
+            "Earnings by period",
+            "Cumulative earnings",
+            "Cumulative balance",
+            "Raw data",
+        ]
+    )
+    with tab1:
+        st.title("Earnings by period")
+        period = st.selectbox("Select period", PERIOD_OPTIONS, format_func=lambda x: PERIOD_OPTIONS[x], index=1)
+        viz.earnings_by_period(df, period)
+    with tab2:
+        st.title("Cumulative earnings")
+        viz.cumulative_earnings(df)
+    with tab3:
+        st.title("Cumulative balance")
+        viz.cumulative_balance(df)
+    with tab4:
+        st.title("Raw data")
+        st.dataframe(df, hide_index=True)
