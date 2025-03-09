@@ -69,7 +69,12 @@ def main():
     )
     with tab1:
         st.title("Earnings by period")
-        period = st.selectbox("Select period", PERIOD_OPTIONS, format_func=lambda x: PERIOD_OPTIONS[x], index=1)
+        period = st.segmented_control(
+            "Frequency",
+            PERIOD_OPTIONS,
+            format_func=lambda x: PERIOD_OPTIONS[x],
+            default="W",
+        )
         viz.earnings_by_period(df, period)
     with tab2:
         st.title("Cumulative earnings")
