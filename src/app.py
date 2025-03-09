@@ -1,3 +1,4 @@
+import io
 import pandas as pd
 import streamlit as st
 
@@ -6,25 +7,34 @@ from src import viz
 
 
 def data_dl_ul():
+    if "data" in st.session_state:
+        data = st.session_state["data"]
+        st.success(f"`{data.name}` uploaded", icon=":material/check:")
+        if st.button(":material/delete:"):
+            del st.session_state["data"]
+            st.rerun()
 
-    st.markdown(
-        """
-        ### Data Import
-        1. Download your transactions from JustPark
-        2. Upload the CSV file below
-        """
-    )
-    st.divider()
+    else:
+        st.markdown(
+            """
+            ### Data Import
+            1. Download your transactions from JustPark
+            2. Upload the CSV file below
+            """
+        )
+        st.divider()
 
-    st.link_button(
-        "Download from JustPark",
-        "https://www.justpark.com/dashboard/billing/transactions/download",
-        icon=":material/download:",
-    )
-    st.divider()
+        st.link_button(
+            "Download from JustPark",
+            "https://www.justpark.com/dashboard/billing/transactions/download",
+            icon=":material/download:",
+        )
+        st.divider()
 
-    data = st.file_uploader("Upload CSV file", type="csv")
-    return data
+        data = st.file_uploader("Upload CSV file", type="csv")
+        if data:
+            st.session_state["data"] = data
+            st.rerun()
 
 
 def metrics(df: pd.DataFrame):
@@ -39,13 +49,14 @@ def metrics(df: pd.DataFrame):
 
 def main():
     with st.sidebar:
-        data = data_dl_ul()
+        data_dl_ul()
 
-    if not data:
+    if "data" not in st.session_state:
         st.info("Download your latest transactions from JustPark in the sidebar")
         st.stop()
 
-    df = pd.read_csv(data)
+    data = st.session_state["data"].getvalue()
+    df = pd.read_csv(io.BytesIO(data))
     df = clean_data(df)
     start_date, end_date = st.slider(
         "Select a date range",
@@ -69,13 +80,14 @@ def main():
     )
     with tab1:
         st.title("Earnings by period")
+        DEFAULT_PERIOD = "W"
         period = st.segmented_control(
             "Frequency",
             PERIOD_OPTIONS,
             format_func=lambda x: PERIOD_OPTIONS[x],
-            default="W",
+            default=DEFAULT_PERIOD,
         )
-        viz.earnings_by_period(df, period)
+        viz.earnings_by_period(df, period or DEFAULT_PERIOD)
     with tab2:
         st.title("Cumulative earnings")
         viz.cumulative_earnings(df)
