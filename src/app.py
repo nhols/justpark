@@ -6,10 +6,24 @@ from src import viz
 
 
 def data_dl_ul():
-    st.link_button(
-        "Download", "https://www.justpark.com/dashboard/billing/transactions/download", icon=":material/download:"
+
+    st.markdown(
+        """
+        ### Data Import
+        1. Download your transactions from JustPark
+        2. Upload the CSV file below
+        """
     )
-    data = st.file_uploader("Upload", type="csv")
+    st.divider()
+
+    st.link_button(
+        "Download from JustPark",
+        "https://www.justpark.com/dashboard/billing/transactions/download",
+        icon=":material/download:",
+    )
+    st.divider()
+
+    data = st.file_uploader("Upload CSV file", type="csv")
     return data
 
 
@@ -41,15 +55,18 @@ def main():
     )
     df = df[df["Date"].dt.date.between(start_date, end_date)]
 
+    st.divider()
     metrics(df)
 
+    st.divider()
     st.title("Earnings by period")
     period = st.selectbox("Select period", PERIOD_OPTIONS, format_func=lambda x: PERIOD_OPTIONS[x])
     viz.earnings_by_period(df, period)
+    st.divider()
 
     st.title("Cumulative earnings")
     viz.cumulative_earnings(df)
-
+    st.divider()
     st.title("Cumulative balance")
     viz.cumulative_balance(df)
 

@@ -7,12 +7,12 @@ from src.data_utils import PERIOD_OPTIONS, drop_withdrawals
 def total_earnings(df: pd.DataFrame) -> pd.DataFrame:
     df_copy = df.copy()
     df_copy = drop_withdrawals(df_copy)
-    st.metric(label="Total earnings", value=f"£{df_copy['total_amount'].sum():.2f}")
+    st.metric(label="Total earnings", value=f"£{df_copy['total_amount'].sum():.2f}", border=True)
 
 
 def total_bookings(df: pd.DataFrame) -> pd.DataFrame:
     bookings = {desc.split("#")[-1] for desc in df["Description"].tolist() if "#" in desc}
-    st.metric(label="Total bookings", value=len(bookings))
+    st.metric(label="Total bookings", value=len(bookings), border=True)
 
 
 def earnings_this_tax_year(df: pd.DataFrame) -> pd.DataFrame:
@@ -23,7 +23,11 @@ def earnings_this_tax_year(df: pd.DataFrame) -> pd.DataFrame:
     df_copy = df_copy[df_copy["Date"] >= tax_year_start]
     total = df_copy["total_amount"].sum()
 
-    st.metric(label=f"Earnings this tax year ({tax_year_start.year}/{tax_year_start.year + 1})", value=f"£{total:.2f}")
+    st.metric(
+        label=f"Earnings this tax year ({tax_year_start.year}/{tax_year_start.year + 1})",
+        value=f"£{total:.2f}",
+        border=True,
+    )
 
 
 def earnings_by_period(df: pd.DataFrame, period: str) -> pd.DataFrame:
