@@ -1,11 +1,41 @@
+from enum import Enum
+
 import pandas as pd
 
-PERIOD_OPTIONS = {
-    "D": "day",
-    "W": "week",
-    "ME": "month",
-    "Y": "year",
-}
+
+class PeriodOption(Enum):
+    DAY = "D"
+    WEEK = "W"
+    MONTH = "ME"
+    YEAR = "YE"
+
+    @property
+    def width(self):
+        return {
+            PeriodOption.DAY: 5,
+            PeriodOption.WEEK: 15,
+            PeriodOption.MONTH: 50,
+            PeriodOption.YEAR: 200,
+        }[self]
+
+    @property
+    def label(self):
+        return {
+            PeriodOption.DAY: "day",
+            PeriodOption.WEEK: "week",
+            PeriodOption.MONTH: "month",
+            PeriodOption.YEAR: "year",
+        }[self]
+
+    @property
+    def format_moment_js(self):
+        """Format for moment.js https://momentjs.com/docs/#/displaying/format/"""
+        return {
+            PeriodOption.DAY: "DD MMM YY",
+            PeriodOption.WEEK: "DD MMM YY",
+            PeriodOption.MONTH: "MMM YY",
+            PeriodOption.YEAR: "YYYY",
+        }[self]
 
 
 def drop_withdrawals(df: pd.DataFrame) -> pd.DataFrame:

@@ -1,9 +1,10 @@
 import io
+
 import pandas as pd
 import streamlit as st
 
-from src.data_utils import PERIOD_OPTIONS, clean_data
 from src import viz
+from src.data_utils import PeriodOption, clean_data
 
 
 def data_dl_ul():
@@ -80,14 +81,14 @@ def main():
     )
     with tab1:
         st.title("Earnings by period")
-        DEFAULT_PERIOD = "W"
+        default = PeriodOption.WEEK
         period = st.segmented_control(
             "Frequency",
-            PERIOD_OPTIONS,
-            format_func=lambda x: PERIOD_OPTIONS[x],
-            default=DEFAULT_PERIOD,
+            options=[option for option in PeriodOption],
+            format_func=lambda x: x.label.title(),
+            default=default,
         )
-        viz.earnings_by_period(df, period or DEFAULT_PERIOD)
+        viz.earnings_by_period(df, period or default)
     with tab2:
         st.title("Cumulative earnings")
         viz.cumulative_earnings(df)
