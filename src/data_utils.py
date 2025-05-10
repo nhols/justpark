@@ -13,7 +13,7 @@ def drop_withdrawals(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def clean_data(df: pd.DataFrame) -> pd.DataFrame:
-    df["Date"] = pd.to_datetime(df["Date"])
+    df["Date"] = pd.to_datetime(df["Date"], format="%d/%b/%Y")
     df["Tax"] = df["Tax"].str.replace("Free", "0")
     df["Description"] = df["Description"].fillna("")
     amounts = ["Sub Total", "Tax", "Money in", "Money out"]
