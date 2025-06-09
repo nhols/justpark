@@ -32,7 +32,7 @@ def data_dl_ul():
         )
         st.divider()
 
-        data = st.file_uploader("Upload CSV file", type="csv")
+        data = st.file_uploader("Upload CSV file")
         if data:
             st.session_state["data"] = data
             st.rerun()
