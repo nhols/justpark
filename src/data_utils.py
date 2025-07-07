@@ -52,3 +52,23 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
         df[field] = df[field].fillna(0)
     df["total_amount"] = df["Money in"] + df["Money out"]
     return df
+
+
+def check_earnings_milestone(df: pd.DataFrame) -> bool:
+    """Check if earnings in the last 7 days reach a multiple of 500"""
+    df_copy = df.copy()
+    df_copy = drop_withdrawals(df_copy)
+    
+    # Get the last 7 days
+    now = pd.Timestamp.now()
+    seven_days_ago = now - pd.Timedelta(days=7)
+    recent_df = df_copy[df_copy["Date"] >= seven_days_ago]
+    
+    if recent_df.empty:
+        return False
+    
+    # Calculate total earnings in last 7 days
+    total_earnings = recent_df["total_amount"].sum()
+    
+    # Check if it's a multiple of 500 and greater than 0
+    return total_earnings > 0 and total_earnings % 500 == 0

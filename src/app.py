@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 
 from src import viz
-from src.data_utils import PeriodOption, clean_data
+from src.data_utils import PeriodOption, clean_data, check_earnings_milestone
 
 
 def data_dl_ul():
@@ -59,6 +59,11 @@ def main():
     data = st.session_state["data"].getvalue()
     df = pd.read_csv(io.BytesIO(data))
     df = clean_data(df)
+    
+    # Check for earnings milestone and trigger confetti
+    if check_earnings_milestone(df):
+        st.balloons()
+        
     start_date, end_date = st.slider(
         "Select a date range",
         min_value=df["Date"].min().date(),
