@@ -10,9 +10,100 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Curl keep-alive URL
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Playwright
         run: |
           set -euo pipefail
-          URL="https://justpark-earnings.streamlit.app/"
-          echo "GET $URL"
-          curl -fsS -o /dev/null -w "%{http_code}" "$URL" || true
+          npm init -y
+          npm i playwright@latest --no-audit --no-fund --silent
+          # install required browsers/deps
+          npx playwright install --with-deps
+
+      - name: Playwright page load check
+        continue-on-error: true
+        env:
+          URL: "https://justpark-earnings.streamlit.app/"
+        run: |
+          set -euo pipefail
+          # ensure previous artifacts removed
+          rm -f playwright-status.txt screenshot-fail.png || true
+          node - <<'NODE'
+          const { chromium } = require('playwright');
+          (async () => {
+            const url = process.env.URL;
+            console.log('Visiting', url);
+            let browser;
+            let status = 0;
+            try {
+              browser = await chromium.launch({ args: ['--no-sandbox','--disable-setuid-sandbox'] });
+              const context = await browser.newContext();
+              const page = await context.newPage();
+              const response = await page.goto(url, { waitUntil: 'load', timeout: 30000 }).catch(e => null);
+              if (!response) {
+                console.error('No response received');
+                status = 2;
+              } else {
+                status = response.status();
+                console.log('HTTP status:', status);
+              }
+              // wait a short while for any dynamic content
+              await page.waitForTimeout(2000).catch(() => {});
+              const title = await page.title().catch(() => null);
+              console.log('Title:', title);
+              if (!(status >= 200 && status < 400)) {
+                // capture screenshot for debugging
+                try {
+                  await page.screenshot({ path: 'screenshot-fail.png', fullPage: true });
+                  console.log('Saved screenshot-fail.png');
+                } catch (sErr) {
+                  console.error('Failed to capture screenshot:', sErr);
+                }
+              } else {
+                console.log('Page loaded successfully');
+                status = 0;
+              }
+            } catch (err) {
+              console.error('Error during page load:', err);
+              status = 4;
+            } finally {
+              if (browser) await browser.close().catch(() => {});
+              // write status file for subsequent steps
+              const fs = require('fs');
+              fs.writeFileSync('playwright-status.txt', String(status));
+              console.log('Wrote playwright-status.txt', status);
+              // exit zero so this step doesn't stop the job (we'll check status later)
+              process.exit(0);
+            }
+          })();
+          NODE
+
+      - name: Check Playwright status
+        id: check_status
+        run: |
+          set -euo pipefail
+          if [ -f playwright-status.txt ]; then
+            code=$(cat playwright-status.txt)
+          else
+            code=999
+          fi
+          echo "status=$code" >> "$GITHUB_OUTPUT"
+
+      - name: Upload screenshot on failure
+        if: steps.check_status.outputs.status != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-screenshot
+          path: screenshot-fail.png
+
+      - name: Fail if Playwright detected error
+        if: steps.check_status.outputs.status != '0'
+        run: |
+          set -euo pipefail
+          echo "Playwright check failed with status ${STATUS}" || true
+          # print status for logs
+          cat playwright-status.txt || true
+          exit 1
