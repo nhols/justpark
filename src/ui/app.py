@@ -15,30 +15,34 @@ from src.ui.sql_widget import df_sql_widget
 
 
 @st.cache_data(ttl="1d")
-def load_s3_data():
+def load_s3_data() -> dict:
     s3 = boto3.client(
         "s3",
         aws_access_key_id=st.secrets.aws_access_key_id,
         aws_secret_access_key=st.secrets.aws_secret_access_key,
     )
-    try:
-        obj = s3.get_object(Bucket=st.secrets.bucket, Key=st.secrets.key)
-        st.session_state["data"] = json.load(obj["Body"])
-    except (BotoCoreError, ClientError) as e:
-        st.error(f"Error loading data from S3: {e}")
-        return
+
+    obj = s3.get_object(Bucket=st.secrets.bucket, Key=st.secrets.key)
+    return json.load(obj["Body"])
 
 
 def get_data():
     st.session_state.setdefault("data", None)
-    load_s3_data()
-    if not st.session_state["data"]:
-        file = st.file_uploader("JustPark Bookings JSON", type=["json"])
-        if file is None:
-            st.info("Upload your JustPark bookings JSON file to get started")
-            st.stop()
+    if st.session_state["data"] is not None:
+        return
+    try:
+        st.session_state["data"] = load_s3_data()
+        return
+    except (BotoCoreError, ClientError) as e:
+        st.error(f"Error loading data from S3: {e}")
+
+    file = st.file_uploader("JustPark Bookings JSON", type=["json"])
+    if file is not None:
         st.session_state["data"] = json.load(file)
-        st.rerun()
+        return
+
+    st.info("Upload your JustPark bookings JSON file to get started")
+    st.stop()
 
 
 def app():

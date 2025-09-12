@@ -14,3 +14,4 @@ downloads/
 .vscode/
 .streamlit/secrets.toml
 .jp_profile/
+debug_screenshots/
