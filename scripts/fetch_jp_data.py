@@ -64,14 +64,17 @@ async def login_if_needed(page):
 
     # In headless mode, wait a bit longer for dynamic content
     if HEADLESS:
-        await asyncio.sleep(5)  # Extra wait for headless
-        await page.wait_for_load_state("networkidle", timeout=15000)
+        await asyncio.sleep(8)  # Extra wait for headless/CI
+        await page.wait_for_load_state("networkidle", timeout=20000)
     else:
-        await asyncio.sleep(3)
+        await asyncio.sleep(5)
 
     # Handle cookie banner first - try to reject all cookies
     cookie_banner_handled = False
     cookie_selectors = [
+        # Specific selectors from GitHub Actions log
+        "#onetrust-reject-all-handler",  # Specific ID from error log
+        "button.ot-pc-refuse-all-handler",  # Specific class from error log
         # Specific selectors for JustPark cookie banner
         'button:has-text("Reject All")',
         'button:has-text("Reject all")',
@@ -98,29 +101,41 @@ async def login_if_needed(page):
     ]
 
     # Wait longer for the cookie banner to appear in headless mode
-    wait_time = 5 if HEADLESS else 3
+    wait_time = 8 if HEADLESS else 5  # Increased for CI
     await asyncio.sleep(wait_time)
 
     for i, cookie_sel in enumerate(cookie_selectors):
         try:
             locator = page.locator(cookie_sel)
-            if await locator.count() > 0:
-                # Check if the button is visible
-                if await locator.is_visible():
-                    print(f"Found cookie banner button: {cookie_sel}")
+            count = await locator.count()
+            if count > 0:
+                print(f"Found {count} cookie banner button(s) matching: {cookie_sel}")
 
-                    # In headless mode, ensure element is ready and use more explicit clicking
-                    if HEADLESS:
-                        await locator.wait_for(state="visible", timeout=5000)
-                        await locator.scroll_into_view_if_needed()
-                        await asyncio.sleep(1)
+                # Handle multiple buttons - try each one
+                for j in range(count):
+                    try:
+                        element = locator.nth(j)
+                        if await element.is_visible():
+                            print(f"Clicking cookie banner button {j + 1}/{count}")
 
-                    await locator.click(force=HEADLESS)  # Force click in headless mode
-                    await asyncio.sleep(4 if HEADLESS else 3)  # Give more time in headless
-                    cookie_banner_handled = True
+                            # In headless mode, ensure element is ready and use more explicit clicking
+                            if HEADLESS:
+                                await element.wait_for(state="visible", timeout=5000)
+                                await element.scroll_into_view_if_needed()
+                                await asyncio.sleep(1)
+
+                            await element.click(force=HEADLESS)  # Force click in headless mode
+                            await asyncio.sleep(4 if HEADLESS else 3)  # Give more time in headless
+                            cookie_banner_handled = True
+                            break
+                    except Exception as btn_error:
+                        print(f"Failed to click button {j + 1}: {btn_error}")
+                        continue
+
+                if cookie_banner_handled:
                     break
         except Exception as e:
-            print(f"Failed to click cookie selector {cookie_sel}: {e}")
+            print(f"Failed to process cookie selector {cookie_sel}: {e}")
             continue
 
     if not cookie_banner_handled:
@@ -138,7 +153,7 @@ async def login_if_needed(page):
 
     print("Looking for 'Login with email' button...")
     # Give more time in headless mode for dynamic content to load
-    await asyncio.sleep(3 if HEADLESS else 2)
+    await asyncio.sleep(5 if HEADLESS else 3)  # Increased for CI
 
     # First, let's see all buttons and links on the page for debugging
     all_buttons = await page.locator("button").all()
@@ -247,7 +262,7 @@ async def login_if_needed(page):
 
     async def find_login():
         # Wait longer for login form to appear in headless mode
-        wait_time = 4 if HEADLESS else 2
+        wait_time = 6 if HEADLESS else 3  # Increased for CI
         await asyncio.sleep(wait_time)
 
         for e_sel, p_sel, s_sel in LOGIN_SELECTORS:
@@ -291,24 +306,26 @@ async def login_if_needed(page):
             await asyncio.sleep(1)
 
         await page.fill(e_sel, JP_EMAIL)
-        await asyncio.sleep(0.5)  # Small delay between fills
+        await asyncio.sleep(1)  # Longer delay between fills for CI
         await page.fill(p_sel, JP_PASSWORD)
-        await asyncio.sleep(1)  # Pause before submit
+        await asyncio.sleep(2)  # Longer pause before submit
 
         print("Credentials filled, clicking submit...")
 
         if HEADLESS:
             await submit_locator.scroll_into_view_if_needed()
-            await asyncio.sleep(1)
+            await asyncio.sleep(2)  # Extra time before click
 
         await page.click(s_sel, force=HEADLESS)
 
         try:
-            # Longer timeout for headless mode
-            timeout = 30000 if HEADLESS else 20000
+            # Much longer timeout for headless mode / CI
+            timeout = 45000 if HEADLESS else 25000
             await page.wait_for_load_state("networkidle", timeout=timeout)
         except PWTimeout:
             print("Timeout waiting for page load, continuing...")
+            # Give additional time even after timeout for CI
+            await asyncio.sleep(5)
             pass
     else:
         print("No login form found!")
@@ -320,8 +337,22 @@ async def login_if_needed(page):
 
     # sanity check: we should not be on a login page now
     print("Verifying login success...")
-    await asyncio.sleep(3)  # Give time for any redirects
+
+    # Give extra time in GitHub Actions / headless mode
+    wait_time = 8 if HEADLESS else 5
+    await asyncio.sleep(wait_time)
+
+    # Navigate to dashboard and wait for full load
     await page.goto(DASHBOARD_URL, wait_until="domcontentloaded")
+
+    # Wait for network activity to settle
+    try:
+        await page.wait_for_load_state("networkidle", timeout=15000)
+    except Exception:
+        print("Timeout waiting for networkidle, continuing...")
+
+    # Give additional time for dynamic content
+    await asyncio.sleep(3)
 
     # Check if we're still on a login form (more specific check)
     login_form_indicators = [
@@ -331,17 +362,60 @@ async def login_if_needed(page):
         'button:has-text("Login with email")',
         'button:has-text("Sign in")',
         '[data-testid="login"]',
+        # Additional login page indicators
+        'text="You need to sign in or create an"',
+        'text="Login with Google"',
+        'text="Continue with Apple"',
     ]
 
     is_login_page = False
+    login_indicators_found = []
+
     for indicator in login_form_indicators:
         try:
-            if await page.locator(indicator).count() > 0:
+            count = await page.locator(indicator).count()
+            if count > 0:
                 # Double check it's visible and not just a hidden element
-                if await page.locator(indicator).is_visible():
+                visible_count = 0
+                for i in range(count):
+                    if await page.locator(indicator).nth(i).is_visible():
+                        visible_count += 1
+
+                if visible_count > 0:
                     is_login_page = True
-                    print(f"Still on login page - found: {indicator}")
-                    break
+                    login_indicators_found.append(f"{indicator}({visible_count})")
+        except Exception as e:
+            print(f"Error checking indicator {indicator}: {e}")
+            continue
+
+    # Also check for positive dashboard indicators
+    dashboard_indicators = [
+        'text="Dashboard"',
+        'text="Bookings"',
+        'text="Received"',
+        'h1:has-text("Dashboard")',
+        'h1:has-text("Bookings")',
+        '[data-testid="dashboard"]',
+        ".dashboard",
+        'nav a[href*="dashboard"]',
+        # Look for user/account info that indicates logged in state
+        'button[aria-label*="account"]',
+        'button[aria-label*="profile"]',
+        'text="Sign out"',
+        'text="Logout"',
+    ]
+
+    dashboard_indicators_found = []
+    for indicator in dashboard_indicators:
+        try:
+            count = await page.locator(indicator).count()
+            if count > 0:
+                visible_count = 0
+                for i in range(count):
+                    if await page.locator(indicator).nth(i).is_visible():
+                        visible_count += 1
+                if visible_count > 0:
+                    dashboard_indicators_found.append(f"{indicator}({visible_count})")
         except Exception:
             continue
 
@@ -351,40 +425,45 @@ async def login_if_needed(page):
         screenshot_path = SCREENSHOT_DIR / f"login_failure_{timestamp}.png"
         await page.screenshot(path=screenshot_path, full_page=True)
         print(f"Login failed - screenshot saved to {screenshot_path}")
+        print(f"Login indicators found: {', '.join(login_indicators_found)}")
         await asyncio.sleep(5)
         raise RuntimeError("Login unsuccessful; still on login form. Check credentials or updated selectors.")
     else:
-        print("Login appears successful - no longer on login page")
-
-        # Take screenshot of successful dashboard page
+        # Take screenshot of what we think is the dashboard
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         screenshot_path = SCREENSHOT_DIR / f"dashboard_success_{timestamp}.png"
         await page.screenshot(path=screenshot_path, full_page=True)
         print(f"Dashboard screenshot saved to {screenshot_path}")
 
-        # Also check for any obvious success indicators
-        success_indicators = [
-            'text="Dashboard"',
-            'text="Bookings"',
-            'text="Received"',
-            '[data-testid="dashboard"]',
-            ".dashboard",
-            "nav",
-            "header",
-        ]
-
-        found_indicators = []
-        for indicator in success_indicators:
-            try:
-                count = await page.locator(indicator).count()
-                if count > 0:
-                    found_indicators.append(f"{indicator}({count})")
-            except Exception:
-                pass
-
-        if found_indicators:
-            print(f"Found dashboard indicators: {', '.join(found_indicators)}")
+        if dashboard_indicators_found:
+            print(f"Found dashboard indicators: {', '.join(dashboard_indicators_found)}")
+            print("Login appears successful based on dashboard indicators")
         else:
+            print("WARNING: No clear dashboard indicators found - login success uncertain")
+            print("This might indicate a false positive - check the screenshot")
+
+            # Additional verification - try to find any user-specific content
+            user_indicators = [
+                'text*="Welcome"',
+                'text*="Hello"',
+                'button[aria-label*="menu"]',
+                "nav",
+                "header",
+            ]
+
+            user_found = []
+            for indicator in user_indicators:
+                try:
+                    count = await page.locator(indicator).count()
+                    if count > 0:
+                        user_found.append(f"{indicator}({count})")
+                except Exception:
+                    continue
+
+            if user_found:
+                print(f"Found generic user indicators: {', '.join(user_found)}")
+            else:
+                print("WARNING: No user indicators found at all - likely still on login page")
             print("Warning: No clear dashboard indicators found")
 
 
