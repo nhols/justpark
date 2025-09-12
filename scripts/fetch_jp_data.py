@@ -195,7 +195,9 @@ async def fetch_all(ctx):
 
 def write_s3_data(data):
     s3 = boto3.client("s3")
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     s3.put_object(Bucket=os.getenv("JP_S3_BUCKET"), Key=os.getenv("JP_S3_KEY", "bookings.json"), Body=data)
+    s3.put_object(Bucket=os.getenv("JP_S3_BUCKET"), Key=os.getenv("JP_S3_KEY", f"bookings_{timestamp}.json"), Body=data)
 
 
 async def main():
