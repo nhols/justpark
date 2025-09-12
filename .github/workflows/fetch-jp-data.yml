@@ -33,8 +33,7 @@ jobs:
       run: |
         uv venv
         uv pip install playwright
-        uv run playwright install chromium
-        uv run playwright install-deps chromium
+        uv run playwright install --with-deps
 
     - name: Fetch JustPark data
       env:
