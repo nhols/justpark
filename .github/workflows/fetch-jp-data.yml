@@ -31,7 +31,8 @@ jobs:
 
     - name: Install Playwright browsers
       run: |
-        uv pip install playwright --system
+        uv venv
+        uv pip install playwright
         uv run playwright install chromium
         uv run playwright install-deps chromium
 
