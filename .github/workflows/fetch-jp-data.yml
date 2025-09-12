@@ -1,0 +1,58 @@
+name: Fetch JustPark Data
+
+on:
+  schedule:
+    # Run every day at 8 AM GMT
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+    # Allow manual triggering
+  push:
+    paths:
+      - 'scripts/fetch_jp_data.py'
+      - '.github/workflows/fetch-jp-data.yml'
+    branches:
+      - main
+
+jobs:
+  fetch-data:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        enable-cache: true
+
+    - name: Set up Python
+      run: uv python install
+
+    - name: Install Playwright browsers
+      run: |
+        uv run playwright install chromium
+        uv run playwright install-deps chromium
+
+    - name: Fetch JustPark data
+      env:
+        JP_EMAIL: ${{ secrets.JP_EMAIL }}
+        JP_PASSWORD: ${{ secrets.JP_PASSWORD }}
+        JP_API_KEY: ${{ secrets.JP_API_KEY }}
+        JP_S3_BUCKET: ${{ secrets.JP_S3_BUCKET }}
+        JP_S3_KEY: ${{ secrets.JP_S3_KEY }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+        JP_HEADLESS: "1"
+      run: |
+        uv run scripts/fetch_jp_data.py
+
+    - name: Upload debug screenshots on failure
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: debug-screenshots-${{ github.run_number }}
+        path: debug_screenshots/
+        retention-days: 7
+        if-no-files-found: ignore

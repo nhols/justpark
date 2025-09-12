@@ -12,3 +12,5 @@ wheels/
 downloads/
 .env
 .vscode/
+.streamlit/
+.jp_profile/
