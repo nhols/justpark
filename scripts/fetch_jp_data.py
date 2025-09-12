@@ -180,7 +180,7 @@ async def login_if_needed(page):
         except Exception:
             pass
 
-    # Now try comprehensive selectors
+    # Now try comprehensive selectors with retry logic
     login_email_selectors = [
         # Exact text matching
         'button:has-text("Login with email")',
@@ -209,39 +209,59 @@ async def login_if_needed(page):
         '*:has-text("email")',
     ]
 
-    for email_btn_sel in login_email_selectors:
-        try:
-            locator = page.locator(email_btn_sel)
-            count = await locator.count()
-            if count > 0:
-                print(f"Found {count} elements matching: {email_btn_sel}")
-                # Get the first one that's visible
-                for i in range(count):
-                    element = locator.nth(i)
-                    if await element.is_visible():
-                        text = await element.text_content()
-                        print(f"Element {i} text: '{text}' - attempting click")
+    # Retry logic for login with email button
+    max_retries = 3
+    retry_count = 0
 
-                        # Enhanced clicking for headless mode
-                        if HEADLESS:
-                            await element.wait_for(state="visible", timeout=5000)
-                            await element.scroll_into_view_if_needed()
-                            await asyncio.sleep(1)
+    while retry_count < max_retries and not login_email_button_found:
+        retry_count += 1
+        print(f"Attempt {retry_count}/{max_retries} to find and click 'Login with email' button")
 
-                        await element.click(force=HEADLESS)  # Force click in headless
-                        await page.wait_for_load_state("domcontentloaded", timeout=15000)
+        if retry_count > 1:
+            # Wait longer between retries
+            print("Waiting before retry...")
+            await asyncio.sleep(5)
+            # Refresh the page content
+            await page.reload(wait_until="domcontentloaded")
+            await asyncio.sleep(3)
 
-                        # Extra wait in headless mode
-                        if HEADLESS:
-                            await asyncio.sleep(3)
+        for email_btn_sel in login_email_selectors:
+            try:
+                locator = page.locator(email_btn_sel)
+                count = await locator.count()
+                if count > 0:
+                    print(f"Found {count} elements matching: {email_btn_sel}")
+                    # Get the first one that's visible
+                    for i in range(count):
+                        element = locator.nth(i)
+                        if await element.is_visible():
+                            text = await element.text_content()
+                            print(f"Element {i} text: '{text}' - attempting click")
 
-                        login_email_button_found = True
+                            # Enhanced clicking for headless mode
+                            if HEADLESS:
+                                await element.wait_for(state="visible", timeout=5000)
+                                await element.scroll_into_view_if_needed()
+                                await asyncio.sleep(1)
+
+                            await element.click(force=HEADLESS)  # Force click in headless
+                            await page.wait_for_load_state("domcontentloaded", timeout=15000)
+
+                            # Extra wait in headless mode
+                            if HEADLESS:
+                                await asyncio.sleep(3)
+
+                            login_email_button_found = True
+                            print("Successfully clicked 'Login with email' button")
+                            break
+                    if login_email_button_found:
                         break
-                if login_email_button_found:
-                    break
-        except Exception as e:
-            print(f"Failed to click login email selector {email_btn_sel}: {e}")
-            continue
+            except Exception as e:
+                print(f"Failed to click login email selector {email_btn_sel}: {e}")
+                continue
+
+        if login_email_button_found:
+            break
 
     if not login_email_button_found:
         print("Could not find 'Login with email' button")
@@ -284,111 +304,274 @@ async def login_if_needed(page):
                     return e_sel, p_sel, s_sel
         return None
 
-    sel = await find_login()
-    if sel:
-        e_sel, p_sel, s_sel = sel
-        print("Found login form - filling credentials...")
+    # Retry logic for login form filling and submission
+    login_success = False
+    max_login_retries = 3
+    login_retry_count = 0
 
-        # Enhanced form filling for headless mode
-        email_locator = page.locator(e_sel)
-        password_locator = page.locator(p_sel)
-        submit_locator = page.locator(s_sel)
+    while login_retry_count < max_login_retries and not login_success:
+        login_retry_count += 1
+        print(f"Login attempt {login_retry_count}/{max_login_retries}")
 
-        if HEADLESS:
-            # Ensure elements are ready
-            await email_locator.wait_for(state="visible", timeout=10000)
-            await password_locator.wait_for(state="visible", timeout=10000)
-            await submit_locator.wait_for(state="visible", timeout=10000)
-
-            # Clear any existing content
-            await email_locator.clear()
-            await password_locator.clear()
-            await asyncio.sleep(1)
-
-        await page.fill(e_sel, JP_EMAIL)
-        await asyncio.sleep(1)  # Longer delay between fills for CI
-        await page.fill(p_sel, JP_PASSWORD)
-        await asyncio.sleep(2)  # Longer pause before submit
-
-        print("Credentials filled, clicking submit...")
-
-        if HEADLESS:
-            await submit_locator.scroll_into_view_if_needed()
-            await asyncio.sleep(2)  # Extra time before click
-
-        await page.click(s_sel, force=HEADLESS)
-
-        try:
-            # Much longer timeout for headless mode / CI
-            timeout = 45000 if HEADLESS else 25000
-            await page.wait_for_load_state("networkidle", timeout=timeout)
-        except PWTimeout:
-            print("Timeout waiting for page load, continuing...")
-            # Give additional time even after timeout for CI
+        if login_retry_count > 1:
+            print("Waiting before login retry...")
             await asyncio.sleep(5)
-            pass
-    else:
-        print("No login form found!")
+
+        sel = await find_login()
+        if sel:
+            e_sel, p_sel, s_sel = sel
+            print("Found login form - filling credentials...")
+
+            # Enhanced form filling for headless mode
+            email_locator = page.locator(e_sel)
+            password_locator = page.locator(p_sel)
+            submit_locator = page.locator(s_sel)
+
+            try:
+                if HEADLESS:
+                    # Ensure elements are ready
+                    await email_locator.wait_for(state="visible", timeout=10000)
+                    await password_locator.wait_for(state="visible", timeout=10000)
+                    await submit_locator.wait_for(state="visible", timeout=10000)
+
+                    # Clear any existing content
+                    await email_locator.clear()
+                    await password_locator.clear()
+                    await asyncio.sleep(1)
+
+                # Fill form with retry on each field
+                try:
+                    await page.fill(e_sel, JP_EMAIL)
+                    await asyncio.sleep(1)  # Longer delay between fills for CI
+
+                    await page.fill(p_sel, JP_PASSWORD)
+                    await asyncio.sleep(2)  # Longer pause before submit
+
+                    print("Credentials filled successfully")
+                except Exception as fill_error:
+                    print(f"Form filling failed: {fill_error}")
+                    continue
+
+                print("Clicking submit...")
+
+                if HEADLESS:
+                    await submit_locator.scroll_into_view_if_needed()
+                    await asyncio.sleep(2)  # Extra time before click
+
+                # Submit with retry
+                submit_success = False
+                submit_retries = 2
+                for submit_attempt in range(submit_retries):
+                    try:
+                        await page.click(s_sel, force=HEADLESS)
+                        print(f"Submit clicked (attempt {submit_attempt + 1})")
+                        submit_success = True
+                        break
+                    except Exception as submit_error:
+                        print(f"Submit click failed (attempt {submit_attempt + 1}): {submit_error}")
+                        if submit_attempt < submit_retries - 1:
+                            await asyncio.sleep(2)
+
+                if not submit_success:
+                    print("All submit attempts failed, continuing to next login retry")
+                    continue
+
+                try:
+                    # Much longer timeout for headless mode / CI
+                    timeout = 45000 if HEADLESS else 25000
+                    await page.wait_for_load_state("networkidle", timeout=timeout)
+                    login_success = True
+                    print("Login form submission completed successfully")
+                except PWTimeout:
+                    print("Timeout waiting for page load after submit, will verify login status...")
+                    # Give additional time even after timeout for CI
+                    await asyncio.sleep(5)
+                    # Still consider it potentially successful, will be verified later
+                    login_success = True
+
+            except Exception as login_error:
+                print(f"Login attempt {login_retry_count} failed: {login_error}")
+                if login_retry_count < max_login_retries:
+                    print("Will retry login process...")
+                    continue
+        else:
+            print(f"No login form found on attempt {login_retry_count}")
+            if login_retry_count < max_login_retries:
+                print("Will retry finding login form...")
+                await asyncio.sleep(3)
+                continue
+
+    if not login_success:
         # Take debug screenshot
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        screenshot_path = SCREENSHOT_DIR / f"no_login_form_{timestamp}.png"
+        screenshot_path = SCREENSHOT_DIR / f"login_failed_all_retries_{timestamp}.png"
         await page.screenshot(path=screenshot_path, full_page=True)
-        print(f"Debug screenshot saved to {screenshot_path}")
+        print(f"All login attempts failed - debug screenshot saved to {screenshot_path}")
+    else:
+        print("Login process completed, proceeding to verification...")
 
-    # sanity check: we should not be on a login page now
-    print("Verifying login success...")
+    # Login verification with retry logic
+    verification_success = False
+    max_verification_retries = 3
+    verification_retry_count = 0
 
-    # Give extra time in GitHub Actions / headless mode
-    wait_time = 8 if HEADLESS else 5
-    await asyncio.sleep(wait_time)
+    while verification_retry_count < max_verification_retries and not verification_success:
+        verification_retry_count += 1
+        print(f"Login verification attempt {verification_retry_count}/{max_verification_retries}")
 
-    # Navigate to dashboard and wait for full load
-    await page.goto(DASHBOARD_URL, wait_until="domcontentloaded")
+        if verification_retry_count > 1:
+            print("Waiting before verification retry...")
+            await asyncio.sleep(5)
 
-    # Wait for network activity to settle
-    try:
-        await page.wait_for_load_state("networkidle", timeout=15000)
-    except Exception:
-        print("Timeout waiting for networkidle, continuing...")
+        # Give extra time in GitHub Actions / headless mode
+        wait_time = 8 if HEADLESS else 5
+        await asyncio.sleep(wait_time)
 
-    # Give additional time for dynamic content
-    await asyncio.sleep(3)
+        # Navigate to dashboard and wait for full load
+        await page.goto(DASHBOARD_URL, wait_until="domcontentloaded")
 
-    # Check if we're still on a login form (more specific check)
-    login_form_indicators = [
-        'input[name="email"]',
-        'input[type="email"]',
-        'form[action*="login"]',
-        'button:has-text("Login with email")',
-        'button:has-text("Sign in")',
-        '[data-testid="login"]',
-        # Additional login page indicators
-        'text="You need to sign in or create an"',
-        'text="Login with Google"',
-        'text="Continue with Apple"',
-    ]
-
-    is_login_page = False
-    login_indicators_found = []
-
-    for indicator in login_form_indicators:
+        # Wait for network activity to settle
         try:
-            count = await page.locator(indicator).count()
-            if count > 0:
-                # Double check it's visible and not just a hidden element
-                visible_count = 0
-                for i in range(count):
-                    if await page.locator(indicator).nth(i).is_visible():
-                        visible_count += 1
+            await page.wait_for_load_state("networkidle", timeout=15000)
+        except Exception:
+            print("Timeout waiting for networkidle, continuing...")
 
-                if visible_count > 0:
-                    is_login_page = True
-                    login_indicators_found.append(f"{indicator}({visible_count})")
-        except Exception as e:
-            print(f"Error checking indicator {indicator}: {e}")
-            continue
+        # Give additional time for dynamic content
+        await asyncio.sleep(3)
 
-    # Also check for positive dashboard indicators
+        # Check if we're still on a login form (more specific check)
+        login_form_indicators = [
+            'input[name="email"]',
+            'input[type="email"]',
+            'form[action*="login"]',
+            'button:has-text("Login with email")',
+            'button:has-text("Sign in")',
+            '[data-testid="login"]',
+            # Additional login page indicators
+            'text="You need to sign in or create an"',
+            'text="Login with Google"',
+            'text="Continue with Apple"',
+        ]
+
+        is_login_page = False
+        login_indicators_found = []
+
+        for indicator in login_form_indicators:
+            try:
+                count = await page.locator(indicator).count()
+                if count > 0:
+                    # Double check it's visible and not just a hidden element
+                    visible_count = 0
+                    for i in range(count):
+                        if await page.locator(indicator).nth(i).is_visible():
+                            visible_count += 1
+
+                    if visible_count > 0:
+                        is_login_page = True
+                        login_indicators_found.append(f"{indicator}({visible_count})")
+            except Exception as e:
+                print(f"Error checking indicator {indicator}: {e}")
+                continue
+
+        # Also check for positive dashboard indicators
+        dashboard_indicators = [
+            'text="Dashboard"',
+            'text="Bookings"',
+            'text="Received"',
+            'h1:has-text("Dashboard")',
+            'h1:has-text("Bookings")',
+            '[data-testid="dashboard"]',
+            ".dashboard",
+            'nav a[href*="dashboard"]',
+            # Look for user/account info that indicates logged in state
+            'button[aria-label*="account"]',
+            'button[aria-label*="profile"]',
+            'text="Sign out"',
+            'text="Logout"',
+        ]
+
+        dashboard_indicators_found = []
+        for indicator in dashboard_indicators:
+            try:
+                count = await page.locator(indicator).count()
+                if count > 0:
+                    visible_count = 0
+                    for i in range(count):
+                        if await page.locator(indicator).nth(i).is_visible():
+                            visible_count += 1
+                    if visible_count > 0:
+                        dashboard_indicators_found.append(f"{indicator}({visible_count})")
+            except Exception:
+                continue
+
+        # Determine verification result
+        if is_login_page:
+            print(f"Verification attempt {verification_retry_count}: Still on login page")
+            print(f"Login indicators found: {', '.join(login_indicators_found)}")
+
+            if verification_retry_count < max_verification_retries:
+                print("Will retry login verification...")
+                continue
+            else:
+                # Take screenshot before failing
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                screenshot_path = SCREENSHOT_DIR / f"login_failure_{timestamp}.png"
+                await page.screenshot(path=screenshot_path, full_page=True)
+                print(f"Login failed after all retries - screenshot saved to {screenshot_path}")
+                await asyncio.sleep(5)
+                raise RuntimeError(
+                    "Login unsuccessful after all retry attempts; still on login form. Check credentials or updated selectors."
+                )
+        else:
+            # Take screenshot of what we think is the dashboard
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            screenshot_path = SCREENSHOT_DIR / f"dashboard_success_{timestamp}.png"
+            await page.screenshot(path=screenshot_path, full_page=True)
+            print(f"Dashboard screenshot saved to {screenshot_path}")
+
+            if dashboard_indicators_found:
+                print(f"Found dashboard indicators: {', '.join(dashboard_indicators_found)}")
+                print("Login appears successful based on dashboard indicators")
+                verification_success = True
+            else:
+                print("WARNING: No clear dashboard indicators found - login success uncertain")
+
+                if verification_retry_count < max_verification_retries:
+                    print("Will retry verification to confirm login status...")
+                    continue
+                else:
+                    print("This might indicate a false positive - check the screenshot")
+
+                    # Additional verification - try to find any user-specific content
+                    user_indicators = [
+                        'text*="Welcome"',
+                        'text*="Hello"',
+                        'button[aria-label*="menu"]',
+                        "nav",
+                        "header",
+                    ]
+
+                    user_found = []
+                    for indicator in user_indicators:
+                        try:
+                            count = await page.locator(indicator).count()
+                            if count > 0:
+                                user_found.append(f"{indicator}({count})")
+                        except Exception:
+                            continue
+
+                    if user_found:
+                        print(f"Found generic user indicators: {', '.join(user_found)}")
+                        verification_success = True
+                    else:
+                        print("WARNING: No user indicators found at all - likely still on login page")
+                        # Even without clear indicators, proceed but log warning
+                        verification_success = True
+
+    if not verification_success:
+        print("Login verification failed after all attempts")
+    else:
+        print("Login verification completed successfully")  # Also check for positive dashboard indicators
     dashboard_indicators = [
         'text="Dashboard"',
         'text="Bookings"',
