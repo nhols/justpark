@@ -134,9 +134,9 @@ def driver_spotlight(bookings: Bookings):
     daily_occupancy_plot(df)
 
     st.subheader("Bookings")
-    st.dataframe(df_b, width=True)
+    st.dataframe(df_b, width="stretch")
     st.subheader("Vehicles")
-    st.dataframe(df_v, width=True)
+    st.dataframe(df_v, width="stretch")
 
 
 def driver(bookings: Bookings):
