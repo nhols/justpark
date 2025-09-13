@@ -84,7 +84,7 @@ def driver_stats(bookings: Bookings) -> int | None:
     col_configs = get_driver_stats_column_config(stats)
     st.dataframe(
         stats.sort("total_earnings", descending=True),
-        use_container_width=True,
+        width="stretch",
         column_order=col_configs.keys(),
         column_config=col_configs,
     )
@@ -134,9 +134,9 @@ def driver_spotlight(bookings: Bookings):
     daily_occupancy_plot(df)
 
     st.subheader("Bookings")
-    st.dataframe(df_b, use_container_width=True)
+    st.dataframe(df_b, width=True)
     st.subheader("Vehicles")
-    st.dataframe(df_v, use_container_width=True)
+    st.dataframe(df_v, width=True)
 
 
 def driver(bookings: Bookings):

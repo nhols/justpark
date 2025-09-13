@@ -3,6 +3,7 @@
 # dependencies = [
 #     "boto3",
 #     "playwright",
+#     "python-dotenv",
 # ]
 # ///
 
@@ -16,8 +17,11 @@ from datetime import datetime
 from pathlib import Path
 
 import boto3
+from dotenv import load_dotenv
 from playwright.async_api import TimeoutError as PWTimeout
 from playwright.async_api import async_playwright
+
+load_dotenv()
 
 BASE = "https://www.justpark.com"
 DASHBOARD_URL = f"{BASE}/dashboard/bookings/received"

@@ -15,3 +15,4 @@ downloads/
 .streamlit/secrets.toml
 .jp_profile/
 debug_screenshots/
+.env

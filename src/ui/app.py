@@ -1,4 +1,5 @@
 import datetime
+import hashlib
 import json
 
 import boto3
@@ -75,7 +76,8 @@ def main():
     st.session_state.setdefault("authenticated", False)
     if not st.session_state["authenticated"]:
         password = st.text_input("Enter password", type="password")
-        if password == st.secrets["password"]:
+        hashed_password = hashlib.sha256(password.encode()).hexdigest()
+        if hashed_password == st.secrets["password"]:
             st.session_state["authenticated"] = True
             st.rerun()
         else:
