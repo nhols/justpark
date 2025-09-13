@@ -112,12 +112,13 @@ def live_view(bookings: Bookings):
         )
         .sort("start_date")
     )
+    dt_fmt = "ddd DD MMM, HH:mm"
     cfg = {
         "Status": st.column_config.TextColumn("Status"),
         "Start": st.column_config.TextColumn("Start"),
         "Duration": st.column_config.TextColumn("Duration"),
-        "start_date": st.column_config.DatetimeColumn("Start date", format="DD MMM YYYY HH:mm"),
-        "end_date": st.column_config.DatetimeColumn("End date", format="DD MMM YYYY HH:mm"),
+        "start_date": st.column_config.DatetimeColumn("Start date", format=dt_fmt),
+        "end_date": st.column_config.DatetimeColumn("End date", format=dt_fmt),
         "name": st.column_config.TextColumn("Driver"),
         "phone_number": st.column_config.TextColumn("Phone"),
         "email": st.column_config.TextColumn("Email"),
