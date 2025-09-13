@@ -13,6 +13,7 @@ BOOKINGS = pl.Schema(
         "status": pl.String,
         "timezone": pl.String,
         "title": pl.String,
+        "photos": pl.List(pl.Utf8),
         "infinite": pl.Boolean,
         "booking_type": pl.String,
         "auto_pay": pl.Boolean,

@@ -1,75 +1,92 @@
 import datetime
 import hashlib
-import json
 
 import boto3
-import polars as pl
 import streamlit as st
 from botocore.exceptions import BotoCoreError, ClientError
 from humanize import naturaltime
+from pydantic import ValidationError
 
 from src.bookings import Bookings
 from src.ui.driver import driver
 from src.ui.earnings import earnings
+from src.ui.live import live_view
 from src.ui.occupancy import occupancy
 from src.ui.sql_widget import df_sql_widget
 
+S3ValidationError = (BotoCoreError, ClientError, ValidationError)
 
-@st.cache_data(ttl="1d")
-def load_s3_data() -> dict:
-    s3 = boto3.client(
+
+@st.cache_resource
+def s3_client():
+    return boto3.client(
         "s3",
         aws_access_key_id=st.secrets.aws_access_key_id,
         aws_secret_access_key=st.secrets.aws_secret_access_key,
     )
 
-    obj = s3.get_object(Bucket=st.secrets.bucket, Key=st.secrets.key)
-    return json.load(obj["Body"])
+
+@st.cache_data(ttl="1d")
+def load_s3_data() -> Bookings | None:
+    s3 = s3_client()
+    try:
+        obj = s3.get_object(Bucket=st.secrets.bucket, Key=st.secrets.key)
+        return Bookings.from_json(obj["Body"].read())
+    except S3ValidationError as e:
+        st.error(f"Error loading data from S3: {e}")
+        return
+
+
+def put_s3_data(data: str | bytes | bytearray) -> None:
+    s3 = s3_client()
+    try:
+        _ = Bookings.from_json(data)
+        s3.put_object(Bucket=st.secrets.bucket, Key=st.secrets.key, Body=data)
+        st.success("Data uploaded successfully")
+        refresh_data()
+    except S3ValidationError as e:
+        st.error(f"Data validation error: {e}")
+        return
 
 
 def get_data():
     st.session_state.setdefault("data", None)
-    if st.session_state["data"] is not None:
-        return
-    try:
-        st.session_state["data"] = load_s3_data()
-        return
-    except (BotoCoreError, ClientError) as e:
-        st.error(f"Error loading data from S3: {e}")
 
-    file = st.file_uploader("JustPark Bookings JSON", type=["json"])
+    st.markdown("[![JustPark](https://www.justpark.com/favicon.ico)](https://justpark.com)")
+    file = st.file_uploader("Upload new bookings", help="Upload your JustPark bookings JSON file", type=["json"])
+
     if file is not None:
-        st.session_state["data"] = json.load(file)
+        put_s3_data(file.getvalue())
+
+    bookings = load_s3_data()
+    if bookings:
+        st.session_state["data"] = bookings
         return
 
     st.info("Upload your JustPark bookings JSON file to get started")
-    st.stop()
+
+
+def refresh_data():
+    st.session_state["data"] = None
+    load_s3_data.clear()
 
 
 def app():
-    get_data()
-    bookings = Bookings.from_json(st.session_state["data"])
-
     with st.sidebar:
+        get_data()
+        bookings = st.session_state["data"]
+        if bookings is None:
+            st.stop()
         st.caption(
             f"_Last updated {naturaltime(datetime.datetime.now(tz=bookings.data.fetchedAt.tzinfo) - bookings.data.fetchedAt)}_"
         )
-        if st.button(":material/refresh:", help="Reload data"):
-            st.session_state["data"] = None
+        if st.button(":material/refresh:", help="Check for new data"):
+            refresh_data()
 
-    tab1, tab2, tab3, tab4 = st.tabs(["Earnings", "Occupancy", "Drivers", "Raw data"])
-    with tab1:
-        earnings(
-            bookings.active_bookings.select(
-                pl.col("start_date").alias("date"), pl.col("earnings_value").alias("earnings")
-            )
-        )
-    with tab2:
-        occupancy(bookings)
-    with tab3:
-        driver(bookings)
-    with tab4:
-        df_sql_widget(bookings)
+    tabs = st.tabs(["Earnings", "Live", "Occupancy", "Drivers", "Raw data"])
+    for tab, page in zip(tabs, [earnings, live_view, occupancy, driver, df_sql_widget]):
+        with tab:
+            page(bookings)
 
 
 def main():

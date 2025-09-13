@@ -3,6 +3,8 @@ from datetime import date
 import polars as pl
 import streamlit as st
 
+from src.bookings import Bookings
+
 SCHEAMA = pl.Schema(
     {
         "date": pl.Date,
@@ -63,7 +65,8 @@ def earnings_by_period(df: pl.DataFrame) -> None:
     )
 
 
-def earnings(df: pl.DataFrame) -> None:
+def earnings(bookings: Bookings) -> None:
+    df = bookings.active_bookings.select(pl.col("start_date").alias("date"), pl.col("earnings_value").alias("earnings"))
     if df.is_empty():
         st.info("No earnings data available")
         return

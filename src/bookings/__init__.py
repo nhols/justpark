@@ -28,8 +28,8 @@ class Bookings:
         return self.bookings.filter(pl.col("status") != "cancelled")
 
     @classmethod
-    def from_json(cls, json_data: dict) -> Self:
-        data = BookingResponse.model_validate(json_data)
+    def from_json(cls, json_data: str | bytes | bytearray) -> Self:
+        data = BookingResponse.model_validate_json(json_data)
         return cls(data)
 
     def driver_stats(self) -> pl.DataFrame:
