@@ -22,6 +22,7 @@ def booked_plot(df: pl.DataFrame):
         opacity=0.6,
     )
     fig.update_xaxes(rangeslider_visible=True)
+    fig.update_yaxes(visible=False)
     fig.add_vline(
         x=datetime.datetime.now().isoformat(), line_color=st.get_option("theme.primaryColor"), line_dash="dot"
     )
