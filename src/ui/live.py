@@ -2,7 +2,6 @@ import datetime
 
 import altair as alt
 import humanize
-import pandas as pd
 import plotly.express as px
 import polars as pl
 import streamlit as st
