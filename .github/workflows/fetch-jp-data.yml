@@ -34,18 +34,19 @@ jobs:
         uv venv
         uv pip install playwright
         uv run playwright install --with-deps
-
+    - name: Create session_state.json from secret
+      run: |
+        echo '${{ secrets.JP_SESSION_STATE }}' > session_state.json
     - name: Fetch JustPark data
       env:
-        JP_EMAIL: ${{ secrets.JP_EMAIL }}
-        JP_PASSWORD: ${{ secrets.JP_PASSWORD }}
         JP_API_KEY: ${{ secrets.JP_API_KEY }}
         JP_S3_BUCKET: ${{ secrets.JP_S3_BUCKET }}
         JP_S3_KEY: ${{ secrets.JP_S3_KEY }}
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
-        JP_HEADLESS: "1"
+        JP_SESSION_STATE: session_state.json
+
       run: |
         uv run scripts/fetch_jp_data.py
 
