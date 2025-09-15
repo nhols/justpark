@@ -115,6 +115,7 @@ def live_view(bookings: Bookings):
     dt_fmt = "ddd DD MMM, HH:mm"
     cfg = {
         "Status": st.column_config.TextColumn("Status"),
+        "registration": st.column_config.TextColumn("Reg"),
         "Start": st.column_config.TextColumn("Start"),
         "Duration": st.column_config.TextColumn("Duration"),
         "start_date": st.column_config.DatetimeColumn("Start date", format=dt_fmt),
@@ -124,7 +125,6 @@ def live_view(bookings: Bookings):
         "email": st.column_config.TextColumn("Email"),
         "make": st.column_config.TextColumn("Make"),
         "model": st.column_config.TextColumn("Model"),
-        "registration": st.column_config.TextColumn("Reg"),
         "colour": st.column_config.TextColumn("Colour"),
         "earnings_value": st.column_config.ProgressColumn(
             "Earnings", format="£ %.2f", min_value=0, max_value=df.select(pl.col("earnings_value").max()).item()

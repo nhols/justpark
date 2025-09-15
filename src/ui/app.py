@@ -14,6 +14,7 @@ from src.ui.live import live_view
 from src.ui.occupancy import occupancy
 from src.ui.sql_widget import df_sql_widget
 
+S3Error = (BotoCoreError, ClientError)
 S3ValidationError = (BotoCoreError, ClientError, ValidationError)
 
 
@@ -26,12 +27,25 @@ def s3_client():
     )
 
 
-@st.cache_data(ttl="1d")
+def check_s3_changed():
+    s3 = s3_client()
+    try:
+        obj = s3.head_object(Bucket=st.secrets.bucket, Key=st.secrets.key)
+        if st.session_state["s3_etag"] != obj["ETag"]:
+            st.toast("New data available, reloading", icon="🔄")
+            refresh_data()
+    except S3Error as e:
+        st.error(f"Error checking S3 object: {e}")
+
+
+@st.cache_data(show_spinner="Refreshing bookings data...", show_time=True)
 def load_s3_data() -> Bookings | None:
     s3 = s3_client()
     try:
         obj = s3.get_object(Bucket=st.secrets.bucket, Key=st.secrets.key)
-        return Bookings.from_json(obj["Body"].read())
+        bookings = Bookings.from_json(obj["Body"].read())
+        st.session_state["s3_etag"] = obj["ETag"]
+        return bookings
     except S3ValidationError as e:
         st.error(f"Error loading data from S3: {e}")
         return
@@ -51,6 +65,7 @@ def put_s3_data(data: str | bytes | bytearray) -> None:
 
 def get_data():
     st.session_state.setdefault("data", None)
+    st.session_state.setdefault("s3_etag", None)
 
     st.markdown("[![JustPark](https://www.justpark.com/favicon.ico)](https://justpark.com)")
     file = st.file_uploader("Upload new bookings", help="Upload your JustPark bookings JSON file", type=["json"])
@@ -58,6 +73,7 @@ def get_data():
     if file is not None:
         put_s3_data(file.getvalue())
 
+    check_s3_changed()
     bookings = load_s3_data()
     if bookings:
         st.session_state["data"] = bookings
@@ -83,8 +99,16 @@ def app():
         if st.button(":material/refresh:", help="Check for new data"):
             refresh_data()
 
-    tabs = st.tabs(["Earnings", "Live", "Occupancy", "Drivers", "Raw data"])
-    for tab, page in zip(tabs, [earnings, live_view, occupancy, driver, df_sql_widget]):
+    pages = (
+        ("Live", live_view),
+        ("Earnings", earnings),
+        ("Occupancy", occupancy),
+        ("Drivers", driver),
+        ("Raw data", df_sql_widget),
+    )
+
+    tabs = st.tabs([title for title, _ in pages])
+    for tab, (_, page) in zip(tabs, pages):
         with tab:
             page(bookings)
 
