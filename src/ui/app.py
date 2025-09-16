@@ -73,12 +73,12 @@ def get_data():
         put_s3_data(file.getvalue())
 
     maybe_data = load_s3_data()
-    check_s3_changed()
     if maybe_data:
         bookings, etag = maybe_data
         st.session_state["data"] = bookings
         st.session_state["s3_etag"] = etag
         return
+    check_s3_changed()
 
     st.info("Upload your JustPark bookings JSON file to get started")
 
