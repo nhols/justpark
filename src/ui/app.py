@@ -95,11 +95,12 @@ def app():
         bookings = st.session_state["data"]
         if bookings is None:
             st.stop()
-        st.caption(
-            f"_Last updated {naturaltime(datetime.datetime.now(tz=bookings.data.fetchedAt.tzinfo) - bookings.data.fetchedAt)}_"
-        )
-        if st.button(":material/refresh:", help="Check for new data"):
+        if st.button(":material/refresh:", help="Refresh data"):
             refresh_data()
+
+    st.caption(
+        f"_Data last updated {naturaltime(datetime.datetime.now(tz=bookings.data.fetchedAt.tzinfo) - bookings.data.fetchedAt)}_"
+    )
 
     pages = (
         ("Live", live_view),
