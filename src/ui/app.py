@@ -32,20 +32,19 @@ def check_s3_changed():
     try:
         obj = s3.head_object(Bucket=st.secrets.bucket, Key=st.secrets.key)
         if st.session_state["s3_etag"] != obj["ETag"]:
-            st.toast("New data available, reloading", icon="🔄")
+            st.toast("New data available, reload for latest", icon="🔄")
             refresh_data()
     except S3Error as e:
         st.error(f"Error checking S3 object: {e}")
 
 
 @st.cache_data(show_spinner="Refreshing bookings data...", show_time=True)
-def load_s3_data() -> Bookings | None:
+def load_s3_data() -> tuple[Bookings, str] | None:
     s3 = s3_client()
     try:
         obj = s3.get_object(Bucket=st.secrets.bucket, Key=st.secrets.key)
         bookings = Bookings.from_json(obj["Body"].read())
-        st.session_state["s3_etag"] = obj["ETag"]
-        return bookings
+        return bookings, obj["ETag"]
     except S3ValidationError as e:
         st.error(f"Error loading data from S3: {e}")
         return
@@ -73,10 +72,12 @@ def get_data():
     if file is not None:
         put_s3_data(file.getvalue())
 
+    maybe_data = load_s3_data()
     check_s3_changed()
-    bookings = load_s3_data()
-    if bookings:
+    if maybe_data:
+        bookings, etag = maybe_data
         st.session_state["data"] = bookings
+        st.session_state["s3_etag"] = etag
         return
 
     st.info("Upload your JustPark bookings JSON file to get started")
@@ -84,6 +85,7 @@ def get_data():
 
 def refresh_data():
     st.session_state["data"] = None
+    st.session_state["s3_etag"] = None
     load_s3_data.clear()
 
 
