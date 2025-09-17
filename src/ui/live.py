@@ -24,7 +24,9 @@ def booked_plot(df: pl.DataFrame):
     fig.update_xaxes(rangeslider_visible=True)
     fig.update_yaxes(visible=False)
     fig.add_vline(
-        x=datetime.datetime.now().isoformat(), line_color=st.get_option("theme.primaryColor"), line_dash="dot"
+        x=datetime.datetime.now(tz=df.select(pl.col("start_date")).row(0)[0].tzinfo).isoformat(),
+        line_color=st.get_option("theme.primaryColor"),
+        line_dash="dot",
     )
 
     st.plotly_chart(fig, use_container_width=True)

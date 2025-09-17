@@ -77,8 +77,8 @@ def get_data():
         bookings, etag = maybe_data
         st.session_state["data"] = bookings
         st.session_state["s3_etag"] = etag
+        check_s3_changed()
         return
-    check_s3_changed()
 
     st.info("Upload your JustPark bookings JSON file to get started")
 
