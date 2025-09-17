@@ -27,6 +27,7 @@ def s3_client():
     )
 
 
+@st.fragment(run_every="1m")
 def check_s3_changed():
     s3 = s3_client()
     try:
