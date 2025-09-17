@@ -32,8 +32,7 @@ def check_s3_changed():
     try:
         obj = s3.head_object(Bucket=st.secrets.bucket, Key=st.secrets.key)
         if st.session_state["s3_etag"] != obj["ETag"]:
-            st.toast("New data available, reload for latest", icon="🔄")
-            refresh_data()
+            st.toast("New data available, reload for latest", icon="🔄", duration="infinite")
     except S3Error as e:
         st.error(f"Error checking S3 object: {e}")
 

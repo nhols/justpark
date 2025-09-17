@@ -1,9 +1,6 @@
 name: Fetch JustPark Data
 
 on:
-  schedule:
-    # Run every day at 8 AM GMT
-    - cron: '0 8 * * *'
   workflow_dispatch:
   repository_dispatch:
     types: [jp-email-received]
