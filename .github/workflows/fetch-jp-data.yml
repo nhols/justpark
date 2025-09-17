@@ -5,13 +5,8 @@ on:
     # Run every day at 8 AM GMT
     - cron: '0 8 * * *'
   workflow_dispatch:
-    # Allow manual triggering
-  push:
-    paths:
-      - 'scripts/fetch_jp_data.py'
-      - '.github/workflows/fetch-jp-data.yml'
-    branches:
-      - main
+  repository_dispatch:
+    types: [jp-email-received]
 
 jobs:
   fetch-data:
