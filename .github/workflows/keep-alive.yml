@@ -4,7 +4,7 @@ on:
   schedule:
     # every 10 hours: at minute 0 of hours 0,10,20
     - cron: '0 0,10,20 * * *'
-  workflow_dispatch: {}
+  workflow_dispatch:
 
 jobs:
   ping:
@@ -30,7 +30,7 @@ jobs:
         run: |
           set -euo pipefail
           # ensure previous artifacts removed
-          rm -f playwright-status.txt screenshot-fail.png || true
+          rm -f playwright-status.txt screenshot.png || true
           node - <<'NODE'
           const { chromium } = require('playwright');
           (async () => {
@@ -51,17 +51,39 @@ jobs:
                 console.log('HTTP status:', status);
               }
               // wait a short while for any dynamic content
-              await page.waitForTimeout(2000).catch(() => {});
+              await page.waitForTimeout(3000).catch(() => {});
               const title = await page.title().catch(() => null);
               console.log('Title:', title);
-              if (!(status >= 200 && status < 400)) {
-                // capture screenshot for debugging
-                try {
-                  await page.screenshot({ path: 'screenshot-fail.png', fullPage: true });
-                  console.log('Saved screenshot-fail.png');
-                } catch (sErr) {
-                  console.error('Failed to capture screenshot:', sErr);
+              
+              // Interact with the page - look for password input and enter some text
+              try {
+                console.log('Looking for password input field...');
+                const passwordInput = await page.locator('input[type="password"]').first();
+                if (await passwordInput.isVisible({ timeout: 5000 }).catch(() => false)) {
+                  console.log('Found password input, interacting with it...');
+                  await passwordInput.click();
+                  await passwordInput.fill('test-interaction-text');
+                  await page.keyboard.press('Enter');
+                  console.log('Interacted with password field and pressed Enter');
+                  // wait a bit after interaction
+                  await page.waitForTimeout(2000).catch(() => {});
+                } else {
+                  console.log('Password input not found or not visible');
                 }
+              } catch (interactionErr) {
+                console.log('Error during page interaction:', interactionErr.message);
+              }
+              
+              // Always capture screenshot
+              try {
+                await page.screenshot({ path: 'screenshot.png', fullPage: true });
+                console.log('Saved screenshot.png');
+              } catch (sErr) {
+                console.error('Failed to capture screenshot:', sErr);
+              }
+              
+              if (!(status >= 200 && status < 400)) {
+                console.log('Page had non-success status');
               } else {
                 console.log('Page loaded successfully');
                 status = 0;
@@ -92,12 +114,12 @@ jobs:
           fi
           echo "status=$code" >> "$GITHUB_OUTPUT"
 
-      - name: Upload screenshot on failure
-        if: steps.check_status.outputs.status != '0'
+      - name: Upload screenshot
         uses: actions/upload-artifact@v4
         with:
           name: playwright-screenshot
-          path: screenshot-fail.png
+          path: screenshot.png
+          retention-days: 7
 
       - name: Fail if Playwright detected error
         if: steps.check_status.outputs.status != '0'
