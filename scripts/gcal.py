@@ -90,13 +90,23 @@ def push_bookings_to_calendar(bookings: list[Booking]) -> None:
         if exception is not None:
             logger.error(f"Error creating event for request {request_id}: {exception}")
         else:
-            logger.info(f"Successfully created event: {response.get('summary', 'Unknown')}")
+            logger.info(f"Successfully created event for booking_id={request_id}")
 
     batch = service.new_batch_http_request()
-    for i, booking in enumerate(bookings):
-        logger.info(f"Adding booking to batch: {booking}")
+    for booking in bookings:
+        logger.info(
+            "Adding booking to batch: booking_id=%s status=%s start=%s end=%s",
+            booking.id,
+            booking.status,
+            booking.start_date.isoformat(),
+            booking.end_date.isoformat(),
+        )
         event = booking_to_event(booking)
-        batch.add(service.events().insert(calendarId=CALENDAR_ID, body=event), callback=callback, request_id=str(i))
+        batch.add(
+            service.events().insert(calendarId=CALENDAR_ID, body=event),
+            callback=callback,
+            request_id=str(booking.id),
+        )
 
     logger.info(f"Executing batch request with {len(bookings)} events")
     batch.execute()
