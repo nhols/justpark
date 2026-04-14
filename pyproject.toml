@@ -12,6 +12,7 @@ dependencies = [
     "pydantic>=2.11.7",
     "sqlparse>=0.5.3",
     "streamlit>=1.43.1",
+    "streamlit-calendar>=1.4.0",
 ]
 
 [dependency-groups]

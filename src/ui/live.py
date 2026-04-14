@@ -2,34 +2,59 @@ import datetime
 
 import altair as alt
 import humanize
-import plotly.express as px
 import polars as pl
 import streamlit as st
+from streamlit_calendar import calendar
 
 from src.bookings import Bookings
 
 
 def booked_plot(df: pl.DataFrame):
-    df_ = df.to_pandas()
-    df_["y"] = 1
-    fig = px.timeline(
-        df_,
-        x_start="start_date",
-        x_end="end_date",
-        y="y",
-        title="Bookings Timeline",
-        hover_data={"y": False},
-        opacity=0.6,
-    )
-    fig.update_xaxes(rangeslider_visible=True)
-    fig.update_yaxes(visible=False)
-    fig.add_vline(
-        x=datetime.datetime.now(tz=df.select(pl.col("start_date")).row(0)[0].tzinfo).isoformat(),
-        line_color=st.get_option("theme.primaryColor"),
-        line_dash="dot",
-    )
+    event_colour = st.get_option("theme.primaryColor")
 
-    st.plotly_chart(fig, use_container_width=True)
+    events = df.select(
+        [
+            pl.col("id").cast(pl.String).alias("id"),
+            pl.col("registration").fill_null("Unknown reg").alias("title"),
+            pl.col("start_date").dt.strftime("%Y-%m-%dT%H:%M:%S").alias("start"),
+            pl.col("end_date").dt.strftime("%Y-%m-%dT%H:%M:%S").alias("end"),
+        ]
+    ).to_dicts()
+
+    options = {
+        "initialView": "timeGridWeek",
+        "firstDay": 1,
+        "views": {
+            "timeGridDay": {"slotDuration": "01:00:00"},
+            "timeGridWeek": {"buttonText": "week", "slotDuration": "01:00:00"},
+            "timelineWeek": {"buttonText": "timeline", "slotMinWidth": 140},
+        },
+        "headerToolbar": {
+            "left": "today prev,next",
+            "center": "title",
+            "right": "timeGridDay,timeGridWeek,timelineWeek,dayGridMonth",
+        },
+        "slotMinTime": "00:00:00",
+        "slotMaxTime": "24:00:00",
+        "nowIndicator": True,
+        "height": 740,
+        "editable": False,
+        "slotMinWidth": 120,
+        "eventTimeFormat": {"hour": "2-digit", "minute": "2-digit", "hour12": False},
+    }
+    custom_css = f"""
+    .fc-event {{
+        border: 0;
+        background-color: {event_colour};
+    }}
+    """
+    return calendar(
+        events=events,
+        options=options,
+        custom_css=custom_css,
+        callbacks=["dateClick", "eventClick", "eventsSet"],
+        key=f"bookings-calendar-{options['height']}",
+    )
 
 
 def booked_plot_(df: pl.DataFrame):
@@ -52,53 +77,89 @@ def booked_plot_(df: pl.DataFrame):
 
 
 def live_view(bookings: Bookings):
-    today = datetime.date.today()
-    yesterday = today - datetime.timedelta(days=1)
-    next_week = today + datetime.timedelta(days=7)
-    dates = st.date_input("Select date range", (yesterday, next_week), help="Filter bookings by date range")
-    if not dates or len(dates) != 2:
-        st.info("Select a date range in which to filter bookings")
+    live_bookings = (
+        bookings.active_bookings.join(
+            bookings.drivers.select(["id", "name", "phone_number", "email"]),
+            left_on="driver_id",
+            right_on="id",
+            suffix="_driver",
+        )
+        .join(
+            bookings.vehicles.select(["id", "make", "model", "registration", "colour"]),
+            left_on="vehicle_id",
+            right_on="id",
+            suffix="_vehicle",
+        )
+        .sort("start_date")
+    )
+    if live_bookings.is_empty():
+        st.info("No active bookings found")
         return
 
-    date_from, date_to = dates
-    filtered_bookings = bookings.active_bookings.filter(
-        pl.col("start_date").dt.date().le(date_to) & pl.col("end_date").dt.date().ge(date_from)
-    )
-    if filtered_bookings.is_empty():
-        st.info("No bookings found in the selected date range")
+    calendar_state = booked_plot(live_bookings)
+    selection_key = "live_calendar_selection"
+    view_key = "live_calendar_view"
+
+    if calendar_state:
+        callback = calendar_state.get("callback")
+        if callback == "eventClick":
+            event = calendar_state["eventClick"]["event"]
+            st.session_state[selection_key] = {"type": "event", "booking_id": int(event["id"])}
+            st.session_state[view_key] = calendar_state["eventClick"]["view"]
+        elif callback == "dateClick":
+            clicked_at = datetime.datetime.fromisoformat(calendar_state["dateClick"]["date"])
+            st.session_state[selection_key] = {"type": "date", "date": clicked_at.date().isoformat()}
+            st.session_state[view_key] = calendar_state["dateClick"]["view"]
+        elif callback == "eventsSet":
+            st.session_state[selection_key] = None
+            st.session_state[view_key] = calendar_state["eventsSet"].get("view")
+
+    selected = st.session_state.get(selection_key)
+    current_view = st.session_state.get(view_key)
+
+    table_bookings = live_bookings
+    table_label = "Showing bookings in the current calendar view"
+
+    if selected and selected["type"] == "event":
+        table_bookings = live_bookings.filter(pl.col("id") == selected["booking_id"])
+        table_label = "Showing the clicked booking"
+    elif selected and selected["type"] == "date":
+        selected_date = datetime.date.fromisoformat(selected["date"])
+        table_bookings = live_bookings.filter(
+            pl.col("start_date").dt.date().le(selected_date) & pl.col("end_date").dt.date().ge(selected_date)
+        )
+        table_label = f"Showing bookings for {selected_date:%a %d %b %Y}"
+    elif current_view:
+        view_start = datetime.datetime.fromisoformat(current_view["activeStart"]).date()
+        view_end = (datetime.datetime.fromisoformat(current_view["activeEnd"]) - datetime.timedelta(days=1)).date()
+        table_bookings = live_bookings.filter(
+            pl.col("start_date").dt.date().le(view_end) & pl.col("end_date").dt.date().ge(view_start)
+        )
+
+    if table_bookings.is_empty():
+        st.info("No bookings match the current calendar selection")
         return
-    booked_plot(filtered_bookings)
-    now = datetime.datetime.now(tz=filtered_bookings.select(pl.col("start_date")).row(0)[0].tzinfo)
+
+    st.caption(table_label)
+
+    now = datetime.datetime.now(tz=table_bookings.select(pl.col("start_date")).row(0)[0].tzinfo)
 
     df = (
-        (
-            filtered_bookings.join(
-                bookings.drivers.select(["id", "name", "phone_number", "email"]),
-                left_on="driver_id",
-                right_on="id",
-                suffix="_driver",
-            )
-            .join(
-                bookings.vehicles.select(["id", "make", "model", "registration", "colour"]),
-                left_on="vehicle_id",
-                right_on="id",
-                suffix="_vehicle",
-            )
-            .select(
-                [
-                    "start_date",
-                    "end_date",
-                    "name",
-                    "phone_number",
-                    "email",
-                    "make",
-                    "model",
-                    "registration",
-                    "colour",
-                    "earnings_value",
-                    "paid_value",
-                ]
-            )
+        table_bookings.select(
+            [
+                "id",
+                "start_date",
+                "end_date",
+                "name",
+                "phone_number",
+                "email",
+                "make",
+                "model",
+                "registration",
+                "colour",
+                "earnings_value",
+                "paid_value",
+            ]
         )
         .with_columns(
             pl.col("start_date").map_elements(humanize.naturaltime).alias("Start"),
