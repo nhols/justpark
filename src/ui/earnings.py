@@ -56,6 +56,7 @@ def earnings_by_period(df: pl.DataFrame) -> None:
     st.dataframe(
         df,
         hide_index=True,
+        width="stretch",
         column_config={
             "date": st.column_config.DateColumn("Date", format="DD MMM YYYY"),
             "earnings": st.column_config.ProgressColumn(

@@ -1,4 +1,5 @@
 import datetime as dt
+from typing import cast
 
 import altair as alt
 import polars as pl
@@ -16,7 +17,10 @@ def rolling_occupancy(bookings: Bookings):
     st.subheader("Rolling")
     signal = st.segmented_control("Occupancy signal", ["By minute", "By day"], default="By minute")
     occupancy_signal = "days" if signal == "By day" else "minutes"
-    window = st.segmented_control("Rolling window (days)", [7, 14, 30, 90], default=[7, 30], selection_mode="multi")
+    window = cast(
+        list[int],
+        st.segmented_control("Rolling window (days)", [7, 14, 30, 90], default=[7, 30], selection_mode="multi"),
+    )
     if not window:
         st.info("Select one or more window sizes to display rolling occupancy")
         return
@@ -41,7 +45,7 @@ def rolling_occupancy(bookings: Bookings):
         .encode(
             x=alt.X("date:T", axis=alt.Axis(title="Date")),
             y=alt.Y("occupancy:Q", axis=alt.Axis(title=y_title, format="%"), scale=alt.Scale(domain=[0, 1])),
-            color=alt.Color("window:N", title="Window"),
+            color=alt.Color("window:N", title="Window", legend=alt.Legend(orient="bottom")),
             tooltip=[
                 alt.Tooltip("date:T", title="Date"),
                 alt.Tooltip("window:N", title="Window"),

@@ -201,5 +201,5 @@ def live_view(bookings: Bookings):
         column_config=cfg,
         column_order=cfg.keys(),
         hide_index=True,
-        use_container_width=True,
+        width="stretch",
     )

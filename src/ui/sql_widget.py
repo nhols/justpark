@@ -11,11 +11,9 @@ def df_sql_widget(data: Bookings) -> None:
     dfs = {"Bookings": data.bookings, "Drivers": data.drivers, "Vehicles": data.vehicles}
     for name, df in dfs.items():
         with st.expander(f"{name} Schema"):
-            st.dataframe([{"name": k, "type": v} for k, v in df.schema.items()])
+            st.dataframe([{"name": k, "type": str(v)} for k, v in df.schema.items()], width="stretch")
 
-    drivers = data.drivers
-    vehicles = data.vehicles
-    bookings = data.bookings
+    sql_context = pl.SQLContext(bookings=data.bookings, drivers=data.drivers, vehicles=data.vehicles)
     query = st.text_area(
         "SQL Query",
         height=200,
@@ -28,7 +26,7 @@ LEFT JOIN vehicles v ON b.vehicle_id = v.id
         query = sqlparse.format(query, reindent=True, keyword_case="upper")
         if query != (query_history[-1] if query_history else None):
             query_history.append(query)
-        st.dataframe(pl.sql(query).collect())
+        st.dataframe(sql_context.execute(query).collect(), width="stretch")
 
     with st.expander("Query history"):
         if not query_history:
