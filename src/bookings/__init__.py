@@ -1,4 +1,4 @@
-from typing import Self
+from typing import Literal, Self
 
 import polars as pl
 
@@ -6,6 +6,7 @@ from src.bookings.models import BookingResponse
 from src.bookings.schemas import BOOKINGS, DRIVER, VEHICLE
 
 MINS_IN_DAY = 24 * 60
+OccupancySignal = Literal["minutes", "days"]
 
 
 class Bookings:
@@ -119,7 +120,15 @@ class Bookings:
             .agg(pl.sum("occupied_minutes").alias("occupied_minutes"))
         )
 
-    def rolling_occupancy(self, window_days: int = 30, filter: pl.Expr | None = None) -> pl.DataFrame:
+    def rolling_occupancy(
+        self,
+        window_days: int = 30,
+        filter: pl.Expr | None = None,
+        signal: OccupancySignal = "minutes",
+    ) -> pl.DataFrame:
+        if signal not in ("minutes", "days"):
+            raise ValueError(f"Unsupported occupancy signal: {signal}")
+
         df_occupied = self._occupied_mins_by_date(filter)
 
         min_date, max_date = df_occupied.select(
@@ -127,12 +136,18 @@ class Bookings:
             pl.col("date").max().alias("max"),
         ).row(0)
 
+        occupancy_expr = (
+            (pl.col("occupied_minutes").fill_null(0) > 0).cast(pl.Float64)
+            if signal == "days"
+            else pl.col("occupied_minutes").fill_null(0) / MINS_IN_DAY
+        )
+
         return (
             pl.date_range(min_date, max_date, interval="1d", eager=True)
             .alias("date")
             .to_frame()
             .join(df_occupied, on="date", how="left")
-            .with_columns((pl.col("occupied_minutes").fill_null(0) / MINS_IN_DAY).alias("occupancy"))
+            .with_columns(occupancy_expr.alias("occupancy"))
             .sort("date")
             .select(
                 pl.col("date"),
