@@ -6,13 +6,8 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "boto3>=1.40.30",
-    "humanize>=4.13.0",
-    "plotly>=6.3.0",
-    "polars>=1.33.1",
+    "botocore[crt]>=1.40.30",
     "pydantic>=2.11.7",
-    "sqlparse>=0.5.3",
-    "streamlit>=1.43.1",
-    "streamlit-calendar>=1.4.0",
 ]
 
 [dependency-groups]

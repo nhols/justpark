@@ -12,10 +12,6 @@ class Price(BaseModel):
     currency: str
     formatted: str
 
-    def to_record(self, prefix: str) -> dict:
-        return {f"{prefix}{k}": v for k, v in self.model_dump(include={"value", "currency"}).items()}
-
-
 class PriceData(BaseModel):
     """Wrapper for price data"""
 
@@ -87,14 +83,6 @@ class Booking(BaseModel):
     driver: DriverData
     driver_price: PriceData
     space_owner_earnings: PriceData
-
-    def to_record(self) -> dict:
-        return (
-            self.model_dump(exclude={"vehicle", "driver", "driver_price", "space_owner_earnings"})
-            | self.driver_price.data.to_record("paid_")
-            | self.space_owner_earnings.data.to_record("earnings_")
-        )
-
 
 class BookingResponse(BaseModel):
     """Model for the complete booking response"""

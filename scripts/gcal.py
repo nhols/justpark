@@ -4,7 +4,6 @@
 #     "boto3",
 #     "google-api-python-client",
 #     "google-api-python-client-stubs",
-#     "polars",
 #     "pydantic",
 #     "types-boto3[s3]",
 # ]

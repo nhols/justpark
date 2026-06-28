@@ -8,11 +8,16 @@ wheels/
 
 # Virtual environments
 .venv
+node_modules/
+*.tsbuildinfo
 
 downloads/
 .env
+session_state.json
+web/public/dashboard.json
+web/vite.config.js
+web/vite.config.d.ts
 .vscode/
 .streamlit/secrets.toml
 .jp_profile/
 debug_screenshots/
-.env
