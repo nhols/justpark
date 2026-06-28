@@ -28,7 +28,8 @@ export default function App() {
 
   const load = () => {
     setError("");
-    fetch(`${import.meta.env.BASE_URL}dashboard.json`, { cache: "no-store" })
+    const endpoint = import.meta.env.DEV ? "dashboard.json" : "api/dashboard";
+    fetch(`${import.meta.env.BASE_URL}${endpoint}`, { cache: "no-store" })
       .then((response) => response.ok ? response.json() : Promise.reject(new Error(`Data request failed (${response.status})`)))
       .then((payload: Dashboard) => payload.schemaVersion === 2 ? setData(payload) : Promise.reject(new Error("Unsupported dashboard data")))
       .catch((reason) => setError(reason.message));

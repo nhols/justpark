@@ -42,6 +42,31 @@ jobs:
       run: |
         uv run scripts/fetch_jp_data.py
 
+    - name: Prepare dashboard data
+      env:
+        JP_S3_BUCKET: ${{ secrets.JP_S3_BUCKET }}
+        JP_S3_KEY: ${{ secrets.JP_S3_KEY }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+      run: |
+        PYTHONPATH=. uv run scripts/prepare_dashboard.py \
+          "s3://${JP_S3_BUCKET}/${JP_S3_KEY}" \
+          dashboard.json
+
+    - name: Upload dashboard data to R2
+      working-directory: web
+      env:
+        CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        CLOUDFLARE_R2_BUCKET: ${{ vars.CLOUDFLARE_R2_BUCKET }}
+      run: |
+        npx wrangler r2 object put "${CLOUDFLARE_R2_BUCKET}/dashboard.json" \
+          --file ../dashboard.json \
+          --content-type application/json \
+          --cache-control no-store \
+          --remote
+
     - name: Update google calendar
       env:
         JP_S3_BUCKET: ${{ secrets.JP_S3_BUCKET }}
