@@ -64,8 +64,10 @@ The production site uses Cloudflare Pages for the frontend, a Pages Function at
    - environment variable: `NODE_VERSION=22`
 3. In the Pages project, add an R2 binding named `DASHBOARD_BUCKET` for the
    bucket and redeploy.
-4. Create an R2 API token with object write access and add these repository
-   settings in GitHub:
+4. Create a custom Cloudflare API token with `Account > Workers R2 Storage >
+   Edit`, scoped to your Cloudflare account. Wrangler's R2 object command uses
+   the Cloudflare REST API, so the bucket-scoped R2 `Object Read & Write`
+   credentials are not sufficient. Add these repository settings in GitHub:
    - secret `CLOUDFLARE_API_TOKEN`
    - secret `CLOUDFLARE_ACCOUNT_ID`
    - variable `CLOUDFLARE_R2_BUCKET`
