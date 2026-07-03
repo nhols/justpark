@@ -52,6 +52,7 @@ export function ContinuousWeekCalendar({ bookings, initialDate, onSelect, onMont
   const scrollTick = useRef<number | undefined>(undefined);
   const dayWidthRef = useRef(140);
   const [dayWidth, setDayWidth] = useState(140);
+  const [axisWidth, setAxisWidth] = useState(AXIS_WIDTH);
   const [hourHeight, setHourHeight] = useState(DEFAULT_HOUR_HEIGHT);
   const rangeStart = useMemo(() => addDays(startOfWeek(new Date()), -RANGE_DAYS / 2), []);
   const [visibleDay, setVisibleDay] = useState(() => dayDistance(rangeStart, startOfWeek(initialDate)));
@@ -104,11 +105,13 @@ export function ContinuousWeekCalendar({ bookings, initialDate, onSelect, onMont
     if (!element) return;
     const measure = () => {
       const firstVisible = element.scrollLeft ? element.scrollLeft / dayWidthRef.current : dayDistance(rangeStart, startOfWeek(initialDate));
-      const width = (element.clientWidth - AXIS_WIDTH) / 7;
+      const nextAxisWidth = element.clientWidth < 600 ? 32 : AXIS_WIDTH;
+      const width = (element.clientWidth - nextAxisWidth) / 7;
       const availableHeight = window.innerHeight - element.getBoundingClientRect().top - 20;
       const fittedHourHeight = Math.max(8, Math.min(32, (availableHeight - HEADER_HEIGHT) / 24));
       dayWidthRef.current = width;
       setDayWidth(width);
+      setAxisWidth(nextAxisWidth);
       setHourHeight(fittedHourHeight);
       requestAnimationFrame(() => { element.scrollLeft = firstVisible * width; });
     };
@@ -131,7 +134,9 @@ export function ContinuousWeekCalendar({ bookings, initialDate, onSelect, onMont
   const now = new Date();
   const nowTop = HEADER_HEIGHT + (now.getHours() * 60 + now.getMinutes()) / 60 * hourHeight;
 
-  return <div className="continuous-calendar" style={{ "--calendar-header": `${HEADER_HEIGHT}px`, "--calendar-hour": `${hourHeight}px` } as CSSProperties}>
+  const eventGutter = dayWidth < 70 ? 2 : 4;
+
+  return <div className="continuous-calendar" style={{ "--calendar-axis": `${axisWidth}px`, "--calendar-header": `${HEADER_HEIGHT}px`, "--calendar-hour": `${hourHeight}px` } as CSSProperties}>
     <div className="continuous-toolbar">
       <div><button aria-label="Previous week" onClick={() => viewport.current?.scrollBy({ left: -dayWidth * 7, behavior: "smooth" })}>‹</button><button aria-label="Next week" onClick={() => viewport.current?.scrollBy({ left: dayWidth * 7, behavior: "smooth" })}>›</button><button onClick={() => scrollToDate(new Date(), "smooth")}>Today</button></div>
       <h2>{weekTitle(visibleStart)}</h2>
@@ -188,20 +193,20 @@ export function ContinuousWeekCalendar({ bookings, initialDate, onSelect, onMont
         if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
       }}
     >
-      <div className="continuous-content" style={{ width: AXIS_WIDTH + RANGE_DAYS * dayWidth, height: HEADER_HEIGHT + hourHeight * 24 }}>
+      <div className="continuous-content" style={{ width: axisWidth + RANGE_DAYS * dayWidth, height: HEADER_HEIGHT + hourHeight * 24 }}>
         {Array.from({ length: 25 }, (_, hour) => <div className="continuous-horizontal-line" key={`line-${hour}`} style={{ top: HEADER_HEIGHT + hour * hourHeight }} />)}
-        {headers.map(({ index }) => <div className="continuous-vertical-line" key={`column-${index}`} style={{ left: AXIS_WIDTH + index * dayWidth }} />)}
-        <div className="continuous-today" style={{ left: AXIS_WIDTH + todayIndex * dayWidth, width: dayWidth }} />
-        {headers.map(({ index, date }) => <div className="continuous-day-header" key={index} style={{ left: AXIS_WIDTH + index * dayWidth, width: dayWidth }}>{date.toLocaleDateString("en-GB", { weekday: "short" }).toUpperCase()} {date.getMonth() + 1}/{date.getDate()}</div>)}
+        {headers.map(({ index }) => <div className="continuous-vertical-line" key={`column-${index}`} style={{ left: axisWidth + index * dayWidth }} />)}
+        <div className="continuous-today" style={{ left: axisWidth + todayIndex * dayWidth, width: dayWidth }} />
+        {headers.map(({ index, date }) => <div className="continuous-day-header" key={index} style={{ left: axisWidth + index * dayWidth, width: dayWidth }}>{date.toLocaleDateString("en-GB", { weekday: "short" }).toUpperCase()} {date.getMonth() + 1}/{date.getDate()}</div>)}
         <div className="continuous-axis-header" />
         <div className="continuous-axis-body" style={{ height: hourHeight * 24 }}>
           {Array.from({ length: 24 }, (_, hour) => <div className="continuous-hour" key={hour} style={{ top: hour * hourHeight, height: hourHeight }}>{hour === 0 ? "12am" : hour < 12 ? `${hour}am` : hour === 12 ? "12pm" : `${hour - 12}pm`}</div>)}
         </div>
-        <div className="continuous-now" style={{ left: AXIS_WIDTH + todayIndex * dayWidth, top: nowTop, width: dayWidth }} />
+        <div className="continuous-now" style={{ left: axisWidth + todayIndex * dayWidth, top: nowTop, width: dayWidth }} />
         {segments.map((segment, index) => segment.day >= 0 && segment.day < RANGE_DAYS && <button
           className={`continuous-event ${segment.booking.status === "cancelled" ? "cancelled" : ""}`}
           key={`${segment.booking.id}-${index}`}
-          style={{ left: AXIS_WIDTH + segment.day * dayWidth + 4, width: dayWidth - 8, top: HEADER_HEIGHT + segment.startMinutes / 60 * hourHeight, height: Math.max(14, (segment.endMinutes - segment.startMinutes) / 60 * hourHeight) }}
+          style={{ left: axisWidth + segment.day * dayWidth + eventGutter, width: dayWidth - eventGutter * 2, top: HEADER_HEIGHT + segment.startMinutes / 60 * hourHeight, height: Math.max(14, (segment.endMinutes - segment.startMinutes) / 60 * hourHeight) }}
           onClick={() => { if (!suppressClick.current) onSelect(segment.booking); }}
         ><span>{segment.booking.registration}</span></button>)}
       </div>

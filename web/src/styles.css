@@ -231,6 +231,9 @@ tr.selectable:hover { background: var(--hover); }
   .continuous-toolbar h2 { grid-column: 1 / -1; grid-row: 1; text-align: center; font-size: 17px; }
   .continuous-toolbar > div:first-child { grid-column: 1; grid-row: 2; }
   .continuous-toolbar > div:last-child { grid-column: 2; grid-row: 2; }
+  .continuous-day-header { overflow: hidden; padding: 0 1px; white-space: nowrap; font-size: 7px; letter-spacing: -.04em; }
+  .continuous-hour { padding-right: 4px; font-size: 8px; }
+  .continuous-event > span { top: 4px; left: 2px; right: 1px; overflow: visible; font-size: 7px; letter-spacing: -.06em; text-overflow: clip; }
   .fc .fc-timegrid { min-width: 0; }
   .fc .fc-timegrid-axis { width: 28px !important; }
   .fc .fc-timegrid-slot-label-cushion { padding: 0 2px; font-size: 8px; }
