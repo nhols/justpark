@@ -102,7 +102,7 @@ footer { padding: 24px 0 40px; border-top: 1px solid var(--line); color: var(--m
 .continuous-axis-body { position: sticky; left: 0; z-index: 5; width: var(--calendar-axis); border-right: 1px solid var(--line); background: var(--panel); pointer-events: none; }
 .continuous-hour { position: absolute; left: 0; width: 100%; padding: 5px 7px 0 0; color: #9aa19d; text-align: right; font-size: 10px; pointer-events: none; }
 .continuous-today { position: absolute; z-index: 0; top: var(--calendar-header); bottom: 0; background: var(--green-soft); opacity: .75; }
-.continuous-now { position: absolute; z-index: 2; height: 2px; background: #e54b3e; pointer-events: none; }
+.continuous-now { position: absolute; z-index: 4; height: 2px; background: #e54b3e; pointer-events: none; }
 .continuous-event { position: absolute; z-index: 3; display: block; overflow: hidden; border: 0; border-radius: 6px; padding: 0; color: var(--event-ink); background: var(--green); cursor: pointer; text-align: left; white-space: nowrap; font: 700 11px ui-monospace, SFMono-Regular, Menlo, monospace; box-shadow: 0 3px 7px #2d6c5b22; }
 .continuous-event > span { position: absolute; top: 6px; left: 8px; right: 8px; display: block; overflow: hidden; line-height: 1.2; text-overflow: ellipsis; }
 .continuous-event.cancelled { opacity: .6; background: #a97268; }
