@@ -35,12 +35,13 @@ html[data-theme="dark"] {
 }
 
 * { box-sizing: border-box; }
+html, body, #root { width: 100%; max-width: 100%; overflow-x: hidden; }
 body { margin: 0; min-width: 320px; min-height: 100vh; color: var(--ink); background: var(--bg); transition: color .15s, background .15s; }
 button, input { font: inherit; }
 button { color: inherit; }
 a { color: var(--green); text-decoration: none; }
 
-.shell { max-width: 1500px; min-height: 100vh; margin: auto; padding: 0 42px; }
+.shell { width: 100%; max-width: 1500px; min-width: 0; min-height: 100vh; margin: auto; padding: 0 42px; overflow-x: hidden; }
 .topbar { height: 96px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
 .brand { display: flex; gap: 12px; align-items: center; color: var(--ink); font: 700 18px "Manrope"; }
 .brand > span:last-child { display: grid; }
@@ -64,7 +65,7 @@ nav { display: flex; gap: 6px; padding: 18px 0; position: sticky; top: 0; z-inde
 nav button { display: flex; gap: 8px; align-items: center; border: 0; background: transparent; color: var(--muted); border-radius: 12px; padding: 10px 15px; cursor: pointer; font-weight: 600; }
 nav button:hover { color: var(--ink); background: var(--soft); }
 nav button.active { color: var(--green); background: var(--green-soft); }
-main { padding: 26px 0 72px; }
+main { width: 100%; min-width: 0; max-width: 100%; padding: 26px 0 72px; }
 footer { padding: 24px 0 40px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
 
 .panel-title p { margin: 0; color: var(--muted); }
@@ -76,9 +77,35 @@ footer { padding: 24px 0 40px; border-top: 1px solid var(--line); color: var(--m
 .panel-title h2 { margin: 0 0 3px; font: 700 18px "Manrope"; }
 .panel-title p { font-size: 12px; }
 .chart-panel { padding-bottom: 12px; }
-.calendar-panel { padding: 22px; overflow-x: auto; }
+.calendar-panel { min-width: 0; max-width: 100%; padding: 22px; overflow: hidden; }
 .calendar-options { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
 .calendar-options > span { color: var(--muted); font-size: 12px; font-weight: 600; }
+.continuous-calendar { --calendar-axis: 52px; width: 100%; min-width: 0; max-width: 100%; overflow: hidden; }
+.continuous-toolbar { width: 100%; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 12px; margin-bottom: 16px; }
+.continuous-toolbar > div { min-width: 0; display: flex; gap: 0; }
+.continuous-toolbar > div:last-child { justify-content: end; }
+.continuous-toolbar button { min-height: 35px; border: 1px solid var(--line); padding: 0 12px; color: var(--muted); background: var(--panel); cursor: pointer; font-size: 12px; font-weight: 600; }
+.continuous-toolbar button:first-child { border-radius: 9px 0 0 9px; }
+.continuous-toolbar button:last-child { border-radius: 0 9px 9px 0; }
+.continuous-toolbar button:only-child { border-radius: 9px; }
+.continuous-toolbar button + button { margin-left: -1px; }
+.continuous-toolbar button:hover { background: var(--soft); }
+.continuous-toolbar button.active { color: #fff; border-color: var(--green); background: var(--green); }
+.continuous-toolbar h2 { margin: 0; font: 700 20px "Manrope"; letter-spacing: -.03em; }
+.continuous-viewport { display: block; width: 100%; min-width: 0; max-width: 100%; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; touch-action: pan-x pan-y; cursor: grab; scrollbar-width: thin; }
+.continuous-viewport.dragging { cursor: grabbing; user-select: none; }
+.continuous-content { position: relative; }
+.continuous-horizontal-line { position: absolute; z-index: 1; left: var(--calendar-axis); right: 0; height: 1px; background: var(--line); pointer-events: none; }
+.continuous-vertical-line { position: absolute; z-index: 1; top: var(--calendar-header); bottom: 0; width: 1px; background: var(--line); pointer-events: none; }
+.continuous-day-header { position: absolute; z-index: 3; top: 0; height: var(--calendar-header); display: grid; place-items: center; border: 1px solid var(--line); border-right: 0; color: var(--muted); background: var(--panel); font-size: 11px; font-weight: 600; }
+.continuous-axis-header { position: sticky; left: 0; top: 0; z-index: 6; width: var(--calendar-axis); height: var(--calendar-header); border: 1px solid var(--line); background: var(--panel); }
+.continuous-axis-body { position: sticky; left: 0; z-index: 5; width: var(--calendar-axis); border-right: 1px solid var(--line); background: var(--panel); pointer-events: none; }
+.continuous-hour { position: absolute; left: 0; width: 100%; padding: 5px 7px 0 0; color: #9aa19d; text-align: right; font-size: 10px; pointer-events: none; }
+.continuous-today { position: absolute; z-index: 0; top: var(--calendar-header); bottom: 0; background: var(--green-soft); opacity: .75; }
+.continuous-now { position: absolute; z-index: 2; height: 2px; background: #e54b3e; pointer-events: none; }
+.continuous-event { position: absolute; z-index: 3; display: block; overflow: hidden; border: 0; border-radius: 6px; padding: 0; color: var(--event-ink); background: var(--green); cursor: pointer; text-align: left; white-space: nowrap; font: 700 11px ui-monospace, SFMono-Regular, Menlo, monospace; box-shadow: 0 3px 7px #2d6c5b22; }
+.continuous-event > span { position: absolute; top: 6px; left: 8px; right: 8px; display: block; overflow: hidden; line-height: 1.2; text-overflow: ellipsis; }
+.continuous-event.cancelled { opacity: .6; background: #a97268; }
 
 .metrics { display: grid; gap: 16px; margin-bottom: 20px; }
 .metrics.three { grid-template-columns: repeat(3, 1fr); }
@@ -200,6 +227,10 @@ tr.selectable:hover { background: var(--hover); }
   .fc .fc-toolbar { align-items: start; gap: 9px; flex-wrap: wrap; }
   .fc .fc-toolbar-chunk:nth-child(2) { order: -1; width: 100%; }
   .calendar-panel { padding: 12px; }
+  .continuous-toolbar { grid-template-columns: 1fr auto; }
+  .continuous-toolbar h2 { grid-column: 1 / -1; grid-row: 1; text-align: center; font-size: 17px; }
+  .continuous-toolbar > div:first-child { grid-column: 1; grid-row: 2; }
+  .continuous-toolbar > div:last-child { grid-column: 2; grid-row: 2; }
   .fc .fc-timegrid { min-width: 0; }
   .fc .fc-timegrid-axis { width: 28px !important; }
   .fc .fc-timegrid-slot-label-cushion { padding: 0 2px; font-size: 8px; }

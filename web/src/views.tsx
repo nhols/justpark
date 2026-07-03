@@ -1,13 +1,13 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
-import timeGridPlugin from "@fullcalendar/timegrid";
 import {
   Bar, BarChart, CartesianGrid, Legend, Line, LineChart,
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import { CalendarDays, Clock3, Mail, Phone, Repeat2, Sparkles, UsersRound } from "lucide-react";
 import { DataTable, Drawer, Empty, Metric, SearchBox, Segmented, type Column } from "./components";
+import { ContinuousWeekCalendar } from "./ContinuousWeekCalendar";
 import { chartDate, dateTime, duration, money, percent, shortDate } from "./format";
 import type { Booking, Dashboard, Driver, OccupancySignal, Period, Vehicle } from "./types";
 
@@ -20,43 +20,54 @@ function isSingleDay(start: string, end: string) {
 }
 
 export function Bookings({ data }: { data: Dashboard }) {
+  const monthCalendar = useRef<FullCalendar>(null);
   const [selected, setSelected] = useState<Booking>();
   const [query, setQuery] = useState("");
   const [cancelled, setCancelled] = useState(false);
+  const [calendarMode, setCalendarMode] = useState<"week" | "month">("week");
+  const [calendarDate, setCalendarDate] = useState(() => new Date());
   const rows = data.bookings.filter((booking) =>
     (cancelled || booking.status !== "cancelled") &&
     `${booking.driverName} ${booking.registration} ${booking.vehicle}`.toLowerCase().includes(query.toLowerCase()),
   );
 
+  const monthEvents = rows.map((booking) => ({
+    id: String(booking.id), start: booking.start, end: booking.end,
+    title: `${booking.registration} · ${booking.driverName}`,
+    className: booking.status === "cancelled" ? "cancelled" : "",
+    extendedProps: { registration: booking.registration, singleDay: isSingleDay(booking.start, booking.end) },
+  }));
+
   return <>
     <div className="panel calendar-panel">
       <div className="calendar-options"><span>Bookings calendar</span><label className="check"><input type="checkbox" checked={cancelled} onChange={(e) => setCancelled(e.target.checked)} /> Show cancelled</label></div>
-      <FullCalendar
-        plugins={[timeGridPlugin, dayGridPlugin]}
-        initialView={innerWidth < 700 ? "dayGridMonth" : "timeGridWeek"}
-        firstDay={1}
-        allDaySlot={false}
-        nowIndicator
-        height="auto"
-        slotDuration="01:00:00"
-        slotMinTime="00:00:00"
-        slotMaxTime="24:00:00"
-        headerToolbar={{ left: "prev,next today", center: "title", right: "timeGridWeek,dayGridMonth" }}
-        buttonText={{ week: "Week", month: "Month", today: "Today" }}
-        events={rows.map((booking) => ({
-          id: String(booking.id), start: booking.start, end: booking.end,
-          title: `${booking.registration} · ${booking.driverName}`,
-          className: booking.status === "cancelled" ? "cancelled" : "",
-          extendedProps: {
-            registration: booking.registration,
-            singleDay: isSingleDay(booking.start, booking.end),
-          },
-        }))}
-        eventContent={({ event, timeText, view }) => view.type === "timeGridWeek" || (view.type === "dayGridMonth" && event.extendedProps.singleDay)
-          ? <span className="calendar-registration">{event.extendedProps.registration}</span>
-          : <><b>{timeText}</b> {event.title}</>}
-        eventClick={({ event }) => setSelected(data.bookings.find((booking) => booking.id === Number(event.id)))}
-      />
+      {calendarMode === "week" ? <ContinuousWeekCalendar bookings={rows} initialDate={calendarDate} onSelect={setSelected} onMonth={(date) => { setCalendarDate(date); setCalendarMode("month"); }} /> :
+        <FullCalendar
+          ref={monthCalendar}
+          plugins={[dayGridPlugin]}
+          initialView="dayGridMonth"
+          initialDate={calendarDate}
+          firstDay={1}
+          height="auto"
+          customButtons={{
+            continuousWeek: {
+              text: "Week",
+              click: () => {
+                const date = monthCalendar.current?.getApi().getDate() ?? new Date();
+                setCalendarDate(date);
+                setCalendarMode("week");
+              },
+            },
+          }}
+          headerToolbar={{ left: "prev,next today", center: "title", right: "continuousWeek,dayGridMonth" }}
+          buttonText={{ week: "Week", month: "Month", today: "Today" }}
+          events={monthEvents}
+          eventContent={({ event, timeText, view }) => view.type === "dayGridMonth" && event.extendedProps.singleDay
+            ? <span className="calendar-registration">{event.extendedProps.registration}</span>
+            : <><b>{timeText}</b> {event.title}</>}
+          eventClick={({ event }) => setSelected(data.bookings.find((booking) => booking.id === Number(event.id)))}
+        />
+      }
     </div>
     <div className="panel">
       <div className="panel-title"><div><h2>All bookings</h2><p>{rows.length} records</p></div><SearchBox value={query} onChange={setQuery} placeholder="Driver, registration or vehicle" /></div>
