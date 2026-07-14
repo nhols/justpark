@@ -1,5 +1,21 @@
 export type Period = "day" | "week" | "month" | "quarter" | "year";
 export type OccupancySignal = "minutes" | "days";
+export type ObservationStatus = "occupied" | "vacant" | "car entering" | "car leaving" | "unknown";
+
+export interface Observation {
+  id: number;
+  observedAt: string;
+  status: ObservationStatus;
+  plate: string | null;
+  vehicleDescription: string | null;
+}
+
+export interface ObservationMonth {
+  schemaVersion: 1;
+  month: string;
+  generatedAt: string;
+  observations: Observation[];
+}
 
 export interface Booking {
   id: number;

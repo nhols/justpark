@@ -180,6 +180,73 @@ tr.selectable:hover { background: var(--hover); }
 @keyframes spin { to { transform: rotate(360deg); } }
 .empty { min-height: 320px; display: grid; place-items: center; color: var(--muted); }
 
+/* Parking observations */
+.observations-panel { height: calc(100dvh - 220px); min-height: 430px; display: flex; flex-direction: column; padding: 20px 28px; }
+.observations-title { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 10px; }
+.observations-title h2 { margin: 0 0 4px; font: 700 20px "Manrope"; }
+.observations-title p { margin: 0; color: var(--muted); font-size: 12px; }
+.timeline-axis { display: grid; grid-template-columns: 122px minmax(0, 1fr); height: 24px; }
+.timeline-axis > div { position: relative; }
+.timeline-axis time { position: absolute; top: 0; color: var(--muted); font-size: 10px; transform: translateX(-50%); }
+.timeline-axis time:first-child { transform: none; }
+.timeline-axis time:last-child { transform: translateX(-100%); }
+.observation-scroll { min-height: 0; flex: 1; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; border-bottom: 1px solid var(--line); }
+.load-sentinel { height: 1px; }
+.timeline-row { min-height: 62px; display: grid; grid-template-columns: 122px minmax(0, 1fr); align-items: stretch; }
+.timeline-day { display: flex; align-items: center; border: 0; border-radius: 8px; padding: 0 15px 0 5px; color: var(--muted); background: transparent; cursor: pointer; font-size: 11px; white-space: nowrap; text-align: left; }
+.timeline-day:hover { color: var(--ink); background: var(--soft); }
+.timeline-day.active { color: var(--green); font-weight: 700; }
+.timeline-track { position: relative; min-width: 0; border-bottom: 1px solid var(--line); }
+.timeline-gridline { position: absolute; inset-block: 0; width: 1px; background: var(--line-soft); pointer-events: none; }
+.booking-band { position: absolute; z-index: 1; left: var(--start); top: 9px; width: max(var(--width), 2px); height: 42px; overflow: hidden; border: 0; border-left: 2px solid var(--orange); padding: 0; color: #676158; background: #84725c3d; cursor: pointer; text-align: left; }
+.booking-band:hover { background: #84725c52; }
+.booking-band-label { position: absolute; z-index: 4; left: var(--start); top: 35px; width: var(--width); overflow: hidden; padding-left: 7px; color: #676158; white-space: nowrap; text-overflow: ellipsis; pointer-events: none; font: 700 10px ui-monospace, SFMono-Regular, Menlo, monospace; }
+html[data-theme="dark"] .booking-band { color: #b9b7ae; background: #8d705044; }
+html[data-theme="dark"] .booking-band:hover { background: #8d70505d; }
+html[data-theme="dark"] .booking-band-label { color: #d0cec5; }
+.observation-marker { position: absolute; z-index: 3; top: 38%; width: var(--marker-size); height: var(--marker-size); border: 0; border-radius: 50%; padding: 0; background: var(--green); box-shadow: none; cursor: pointer; transform: translate(-50%, -50%); }
+.observation-marker:hover { transform: translate(-50%, -50%) scale(1.2); }
+.observation-marker.vacant { top: 72%; width: max(3px, calc(var(--marker-size) / 3)); height: var(--marker-size); border-radius: 1px; background: #9ca6a1; }
+.observation-marker.entering { margin-left: -6px; border-radius: 0; background: #347fb8; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+.observation-marker.leaving { margin-left: 6px; border-radius: 0; background: #8b58b7; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.observation-marker.unknown { margin-left: 10px; background: #8d9692; }
+.observation-legend { display: flex; flex-shrink: 0; flex-wrap: wrap; align-items: center; gap: 7px; color: var(--muted); font-size: 11px; }
+.observation-legend span:not(:first-child) { margin-left: 10px; }
+.legend-booking { width: 20px; height: 10px; border-left: 2px solid var(--orange); background: #84725c3d; }
+.legend-occupied { width: 10px; height: 10px; border-radius: 50%; background: var(--green); }
+.legend-vacant { width: 3px; height: 13px; border-radius: 1px; background: #9ca6a1; }
+.legend-entering { width: 10px; height: 10px; background: #347fb8; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+.legend-leaving { width: 11px; height: 10px; background: #8b58b7; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.inspector-section { margin-top: 26px; }
+.inspector-section h3 { margin: 0 0 12px; font: 700 14px "Manrope"; }
+.booking-details > div { grid-template-columns: 125px 1fr; }
+.inspector-table { overflow-x: auto; margin: 0 -28px; }
+.inspector-table table { white-space: normal; }
+.inspector-table th { padding: 11px 10px; font-size: 9px; }
+.inspector-table th:first-child, .inspector-table td:first-child { padding-left: 28px; min-width: 90px; }
+.inspector-table th:last-child, .inspector-table td:last-child { padding-right: 28px; min-width: 135px; }
+.inspector-table td { padding: 12px 10px; vertical-align: top; font-size: 11px; }
+.observation-status { display: inline-flex; border-radius: 20px; padding: 4px 8px; white-space: nowrap; color: #fff; background: #23785f; font-size: 9px; font-weight: 700; text-transform: capitalize; }
+.observation-status.vacant { color: #fff; background: #626b67; }
+.observation-status.car-entering { color: #fff; background: #256fa8; }
+.observation-status.car-leaving { color: #fff; background: #7852ad; }
+.observation-status.unknown { color: #fff; background: #76675c; }
+.inspector-empty { color: var(--muted); font-size: 12px; }
+.daily-observations { padding-bottom: 0; }
+.daily-observations-title { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 18px; }
+.daily-observations-title h2 { margin: 0 0 3px; font: 700 18px "Manrope"; }
+.daily-observations-title p { margin: 0; color: var(--muted); font-size: 12px; }
+.day-pagination { display: flex; }
+.day-pagination button { min-height: 35px; border: 1px solid var(--line); padding: 0 12px; color: var(--muted); background: var(--panel); cursor: pointer; font-size: 12px; font-weight: 600; }
+.day-pagination button:first-child { border-radius: 9px 0 0 9px; }
+.day-pagination button:last-child { border-radius: 0 9px 9px 0; }
+.day-pagination button + button { margin-left: -1px; }
+.day-pagination button:hover { color: var(--ink); background: var(--soft); }
+.observations-table { overflow-x: auto; margin: 0 -24px; }
+.observations-table td:nth-child(1) { min-width: 90px; }
+.observations-table td:nth-child(4) { white-space: normal; min-width: 180px; }
+.daily-observations-empty { min-height: 120px; display: grid; place-items: center; margin: 0; color: var(--muted); font-size: 12px; }
+
 /* FullCalendar, softened */
 .fc { --fc-page-bg-color: var(--panel); --fc-neutral-bg-color: var(--soft); --fc-list-event-hover-bg-color: var(--hover); --fc-border-color: var(--line); --fc-button-bg-color: var(--panel); --fc-button-border-color: var(--line); --fc-button-text-color: var(--muted); --fc-button-hover-bg-color: var(--soft); --fc-button-hover-border-color: var(--line); --fc-button-active-bg-color: var(--green); --fc-button-active-border-color: var(--green); --fc-today-bg-color: var(--green-soft); font-size: 12px; }
 .fc .fc-toolbar-title { font: 700 20px "Manrope"; letter-spacing: -.03em; }
@@ -234,6 +301,13 @@ tr.selectable:hover { background: var(--hover); }
   .continuous-day-header { overflow: hidden; padding: 0 1px; white-space: nowrap; font-size: 7px; letter-spacing: -.04em; }
   .continuous-hour { padding-right: 4px; font-size: 8px; }
   .continuous-event > span { top: 4px; left: 2px; right: 1px; overflow: visible; font-size: 7px; letter-spacing: -.06em; text-overflow: clip; }
+  .observations-panel { height: calc(100dvh - 190px); min-height: 430px; padding: 14px 12px; }
+  .observations-title { align-items: start; flex-direction: column; gap: 8px; }
+  .timeline-axis, .timeline-row { grid-template-columns: 78px minmax(0, 1fr); }
+  .timeline-day { padding: 0 7px 0 3px; font-size: 9px; }
+  .booking-band-label { padding-left: 3px; font-size: 8px; }
+  .daily-observations-title { align-items: stretch; flex-direction: column; }
+  .day-pagination { align-self: start; }
   .fc .fc-timegrid { min-width: 0; }
   .fc .fc-timegrid-axis { width: 28px !important; }
   .fc .fc-timegrid-slot-label-cushion { padding: 0 2px; font-size: 8px; }

@@ -15,6 +15,7 @@ downloads/
 .env
 session_state.json
 web/public/dashboard.json
+web/public/parking-observations/*
 web/vite.config.js
 web/vite.config.d.ts
 .vscode/

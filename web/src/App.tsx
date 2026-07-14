@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { BarChart3, CalendarDays, CarFront, Database, Monitor, Moon, RefreshCw, Sun, UsersRound } from "lucide-react";
+import { BarChart3, CalendarDays, Camera, CarFront, Database, Monitor, Moon, RefreshCw, Sun, UsersRound } from "lucide-react";
 import { Bookings, Drivers, Earnings, Occupancy, RawData } from "./views";
+import { Observations } from "./ObservationTimeline";
 import { relative } from "./format";
 import type { Dashboard } from "./types";
 
 const views = {
   bookings: { label: "Bookings", icon: CalendarDays, component: Bookings },
+  observations: { label: "Observations", icon: Camera, component: Observations },
   earnings: { label: "Earnings", icon: BarChart3, component: Earnings },
   occupancy: { label: "Occupancy", icon: CarFront, component: Occupancy },
   drivers: { label: "Drivers", icon: UsersRound, component: Drivers },
