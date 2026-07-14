@@ -4,7 +4,8 @@ import type { Booking, Dashboard, Observation, ObservationMonth } from "./types"
 
 const LONDON = "Europe/London";
 const LOAD_DAYS = 14;
-const INITIAL_PAST_DAYS = 4;
+const WINDOW_DAYS = 35;
+const INITIAL_PAST_DAYS = 14;
 const BIN_MINUTES = 15;
 const londonFormatter = new Intl.DateTimeFormat("en-GB", {
   timeZone: LONDON,
@@ -63,7 +64,7 @@ function inBooking(observation: Observation, booking: Booking) {
 
 export function Observations({ data }: { data: Dashboard }) {
   const today = useMemo(() => londonParts(new Date()).key, []);
-  const [days, setDays] = useState(() => datesBetween(addDays(today, -INITIAL_PAST_DAYS), addDays(today, 4)));
+  const [days, setDays] = useState(() => datesBetween(addDays(today, -INITIAL_PAST_DAYS), addDays(today, WINDOW_DAYS - INITIAL_PAST_DAYS - 1)));
   const [months, setMonths] = useState<Map<string, ObservationMonth>>(() => new Map());
   const [selection, setSelection] = useState<Selection>();
   const [tableDay, setTableDay] = useState(today);
@@ -71,7 +72,7 @@ export function Observations({ data }: { data: Dashboard }) {
   const olderSentinel = useRef<HTMLDivElement>(null);
   const newerSentinel = useRef<HTMLDivElement>(null);
   const fetching = useRef(new Set<string>());
-  const prependHeight = useRef<number | undefined>(undefined);
+  const scrollAnchor = useRef<{ day: string; offset: number } | undefined>(undefined);
   const positioned = useRef(false);
   const activeBookings = useMemo(() => data.bookings.filter((booking) => booking.status !== "cancelled"), [data.bookings]);
 
@@ -100,9 +101,11 @@ export function Observations({ data }: { data: Dashboard }) {
       scroller.current.scrollTop = scroller.current.scrollHeight * INITIAL_PAST_DAYS / days.length;
       positioned.current = true;
     }
-    if (prependHeight.current === undefined || !scroller.current) return;
-    scroller.current.scrollTop += scroller.current.scrollHeight - prependHeight.current;
-    prependHeight.current = undefined;
+    if (!scrollAnchor.current || !scroller.current) return;
+    const anchor = scrollAnchor.current;
+    const row = scroller.current.querySelector<HTMLElement>(`[data-day="${anchor.day}"]`);
+    if (row) scroller.current.scrollTop += row.getBoundingClientRect().top - scroller.current.getBoundingClientRect().top - anchor.offset;
+    scrollAnchor.current = undefined;
   }, [days]);
 
   useEffect(() => {
@@ -113,12 +116,14 @@ export function Observations({ data }: { data: Dashboard }) {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         if (!entry.isIntersecting) return;
+        const rootTop = root.getBoundingClientRect().top;
+        const firstVisible = [...root.querySelectorAll<HTMLElement>(".timeline-row")].find((row) => row.getBoundingClientRect().bottom > rootTop);
+        if (!firstVisible?.dataset.day || scrollAnchor.current) return;
+        scrollAnchor.current = { day: firstVisible.dataset.day, offset: firstVisible.getBoundingClientRect().top - rootTop };
         if (entry.target === older) {
-          if (prependHeight.current !== undefined) return;
-          prependHeight.current = root.scrollHeight;
-          setDays((current) => [...datesBetween(addDays(current[0], -LOAD_DAYS), addDays(current[0], -1)), ...current]);
+          setDays((current) => [...datesBetween(addDays(current[0], -LOAD_DAYS), addDays(current[0], -1)), ...current.slice(0, -LOAD_DAYS)]);
         } else {
-          setDays((current) => [...current, ...datesBetween(addDays(current.at(-1)!, 1), addDays(current.at(-1)!, LOAD_DAYS))]);
+          setDays((current) => [...current.slice(LOAD_DAYS), ...datesBetween(addDays(current.at(-1)!, 1), addDays(current.at(-1)!, LOAD_DAYS))]);
         }
       });
     }, { root, rootMargin: "100px 0px", threshold: 0 });
@@ -209,7 +214,7 @@ function TimelineDay({ day, bookings, observations, selected, onDay, onBooking, 
     bins.set(key, { bin, status: observation.status, observations: [...(existing?.observations ?? []), observation] });
   });
 
-  return <div className="timeline-row">
+  return <div className="timeline-row" data-day={day}>
     <button className={`timeline-day ${selected ? "active" : ""}`} aria-pressed={selected} onClick={onDay}>{formatDay(day)}</button>
     <div className="timeline-track">
       {[0, 6, 12, 18, 24].map((hour) => <span className="timeline-gridline" key={hour} style={{ left: `${hour / 24 * 100}%` }} />)}
