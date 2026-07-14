@@ -98,7 +98,8 @@ export function Observations({ data }: { data: Dashboard }) {
 
   useLayoutEffect(() => {
     if (!positioned.current && scroller.current) {
-      scroller.current.scrollTop = scroller.current.scrollHeight * INITIAL_PAST_DAYS / days.length;
+      const todayRow = scroller.current.querySelector<HTMLElement>(`[data-day="${today}"]`);
+      if (todayRow) scroller.current.scrollTop = todayRow.offsetTop + todayRow.offsetHeight - scroller.current.clientHeight;
       positioned.current = true;
     }
     if (!scrollAnchor.current || !scroller.current) return;
