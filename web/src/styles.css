@@ -301,11 +301,12 @@ html[data-theme="dark"] .booking-band-label { color: #d0cec5; }
   .continuous-day-header { overflow: hidden; padding: 0 1px; white-space: nowrap; font-size: 7px; letter-spacing: -.04em; }
   .continuous-hour { padding-right: 4px; font-size: 8px; }
   .continuous-event > span { top: 4px; left: 2px; right: 1px; overflow: visible; font-size: 7px; letter-spacing: -.06em; text-overflow: clip; }
-  .observations-panel { height: calc(100vh - 190px); height: calc(100svh - 190px); min-height: 430px; padding: 14px 12px; }
+  .observations-panel { height: auto; min-height: 0; padding: 14px 12px; }
   .observations-title { align-items: start; flex-direction: column; gap: 8px; }
   .timeline-axis, .timeline-row { grid-template-columns: 78px minmax(0, 1fr); }
   .timeline-day { padding: 0 7px 0 3px; font-size: 9px; }
   .booking-band-label { padding-left: 3px; font-size: 8px; }
+  .observation-scroll { height: 436px; min-height: 436px; flex: 0 0 436px; }
   .daily-observations-title { align-items: stretch; flex-direction: column; }
   .day-pagination { align-self: start; }
   .fc .fc-timegrid { min-width: 0; }
