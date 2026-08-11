@@ -3,7 +3,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import {
   Bar, BarChart, CartesianGrid, Legend, Line, LineChart,
-  ResponsiveContainer, Tooltip, XAxis, YAxis,
+  ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import { CalendarDays, Clock3, Mail, Phone, Repeat2, Sparkles, UsersRound } from "lucide-react";
 import { DataTable, Drawer, Empty, Metric, SearchBox, Segmented, type Column } from "./components";
@@ -123,6 +123,10 @@ export function Occupancy({ data }: { data: Dashboard }) {
   const [signal, setSignal] = useState<OccupancySignal>("minutes");
   const [windows, setWindows] = useState([7, 30]);
   const colours = ["#2d6c5b", "#d99662", "#6b78a8", "#a65d71"];
+  const todayParts = Object.fromEntries(new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(new Date()).map((part) => [part.type, part.value]));
+  const today = `${todayParts.year}-${todayParts.month}-${todayParts.day}`;
   const toggle = (window: number) => setWindows((current) => current.includes(window) ? current.filter((v) => v !== window) : [...current, window].sort((a, b) => a - b));
   return <>
     <div className="panel chart-panel">
@@ -134,6 +138,7 @@ export function Occupancy({ data }: { data: Dashboard }) {
         <LineChart data={data.occupancy[signal]} margin={{ top: 24, right: 8, bottom: 0, left: 0 }}>
           <CartesianGrid vertical={false} stroke="var(--line)" /><XAxis dataKey="date" tickFormatter={(v) => chartDate(v)} axisLine={false} tickLine={false} minTickGap={44} /><YAxis domain={[0, 1]} tickFormatter={(v) => percent(v)} axisLine={false} tickLine={false} width={48} />
           <Tooltip formatter={(value, name) => [percent(Number(value)), `${name} day window`]} labelFormatter={(v) => shortDate(String(v))} contentStyle={tooltip} /><Legend formatter={(v) => `${v} day window`} />
+          <ReferenceLine x={today} stroke="#dc2626" strokeOpacity={0.45} strokeWidth={2.5} />
           {windows.map((window, i) => <Line key={window} dataKey={String(window)} connectNulls type="monotone" stroke={colours[i]} strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />)}
         </LineChart>
       </ResponsiveContainer>}
