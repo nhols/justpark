@@ -46,7 +46,7 @@ a { color: var(--green); text-decoration: none; }
 .brand { display: flex; gap: 12px; align-items: center; color: var(--ink); font: 700 18px "Manrope"; }
 .brand > span:last-child { display: grid; }
 .brand small { color: var(--muted); font: 500 11px "DM Sans"; letter-spacing: .03em; }
-.brand-mark { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 14px 14px 14px 4px; background: var(--green); color: #fff; font: 700 15px "Manrope"; box-shadow: 0 8px 18px #2d6c5b35; }
+.brand-mark { width: 42px; height: 42px; display: block; flex: 0 0 auto; border-radius: 14px 14px 14px 4px; background: var(--green); object-fit: cover; box-shadow: 0 8px 18px #2d6c5b35; }
 
 .topbar-actions { display: flex; align-items: center; gap: 16px; }
 .freshness { display: flex; align-items: center; gap: 10px; text-align: right; }
@@ -275,7 +275,7 @@ html[data-theme="dark"] .booking-band-label { color: #d0cec5; }
   .topbar { height: 80px; }
   .brand { gap: 8px; font-size: 14px; }
   .brand small { display: none; }
-  .brand-mark { width: 38px; height: 38px; border-radius: 12px 12px 12px 4px; font-size: 13px; }
+  .brand-mark { width: 38px; height: 38px; border-radius: 12px 12px 12px 4px; }
   .topbar-actions { gap: 7px; }
   .freshness > span, .freshness small { display: none; }
   .freshness strong { max-width: 100px; font-size: 10px; line-height: 1.2; }

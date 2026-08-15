@@ -15,6 +15,7 @@ const views = {
 };
 type View = keyof typeof views;
 type Theme = "system" | "light" | "dark";
+const appIcon = `${import.meta.env.BASE_URL}icons/icon-192.png`;
 
 function initialView(): View {
   const hash = location.hash.slice(1);
@@ -61,12 +62,12 @@ export default function App() {
     return () => removeEventListener("hashchange", onHashChange);
   }, []);
 
-  if (!data) return <main className="centre-state"><div className="brand-mark">JP</div>{error ? <><h1>Couldn’t load the dashboard</h1><p>{error}</p><button onClick={load}>Try again</button></> : <><div className="loader" /><p>Preparing your space…</p></>}</main>;
+  if (!data) return <main className="centre-state"><img className="brand-mark" src={appIcon} alt="" />{error ? <><h1>Couldn’t load the dashboard</h1><p>{error}</p><button onClick={load}>Try again</button></> : <><div className="loader" /><p>Preparing your space…</p></>}</main>;
 
   const Page = views[view].component;
   return <div className="shell">
     <header className="topbar">
-      <a className="brand" href="#bookings"><span className="brand-mark">JP</span><span>JustPark Earnings<small>Private dashboard</small></span></a>
+      <a className="brand" href="#bookings"><img className="brand-mark" src={appIcon} alt="" /><span>Lemon Linnet<small>JustPark earnings</small></span></a>
       <div className="topbar-actions"><ThemePicker value={theme} onChange={setTheme} /><div className="freshness"><span /><div><strong>Data updated {relative(data.fetchedAt)}</strong><small>{data.summary.bookings} bookings · {data.summary.drivers} drivers</small></div><button className="icon-button" onClick={load} aria-label="Refresh"><RefreshCw size={17} /></button></div></div>
     </header>
     <nav>{Object.entries(views).map(([key, item]) => <button key={key} className={view === key ? "active" : ""} onClick={() => { setView(key as View); location.hash = key; scrollTo({ top: 0, behavior: "smooth" }); }}><item.icon size={18} /><span>{item.label}</span></button>)}</nav>
