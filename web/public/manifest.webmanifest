@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "Lemon Linnet Parking",
-  "short_name": "Lemon Linnet",
-  "description": "Private JustPark bookings and earnings dashboard for Lemon Linnet.",
+  "name": "JustPark Earnings",
+  "short_name": "JustPark",
+  "description": "Private JustPark bookings and earnings dashboard.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

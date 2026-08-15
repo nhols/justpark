@@ -1,4 +1,4 @@
-const CACHE_NAME = "lemon-linnet-shell-v1";
+const CACHE_NAME = "justpark-shell-v2";
 const SCOPE_URL = new URL(self.registration.scope);
 const PRECACHE_URLS = [
   "./",
@@ -52,7 +52,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil((async () => {
     const cacheNames = await caches.keys();
     await Promise.all(cacheNames
-      .filter((name) => name.startsWith("lemon-linnet-shell-") && name !== CACHE_NAME)
+      .filter((name) => name !== CACHE_NAME)
       .map((name) => caches.delete(name)));
     await self.clients.claim();
   })());

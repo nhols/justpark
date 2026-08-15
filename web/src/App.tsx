@@ -67,7 +67,7 @@ export default function App() {
   const Page = views[view].component;
   return <div className="shell">
     <header className="topbar">
-      <a className="brand" href="#bookings"><img className="brand-mark" src={appIcon} alt="" /><span>Lemon Linnet<small>JustPark earnings</small></span></a>
+      <a className="brand" href="#bookings"><img className="brand-mark" src={appIcon} alt="" /><span>JustPark Earnings<small>Private dashboard</small></span></a>
       <div className="topbar-actions"><ThemePicker value={theme} onChange={setTheme} /><div className="freshness"><span /><div><strong>Data updated {relative(data.fetchedAt)}</strong><small>{data.summary.bookings} bookings · {data.summary.drivers} drivers</small></div><button className="icon-button" onClick={load} aria-label="Refresh"><RefreshCw size={17} /></button></div></div>
     </header>
     <nav>{Object.entries(views).map(([key, item]) => <button key={key} className={view === key ? "active" : ""} onClick={() => { setView(key as View); location.hash = key; scrollTo({ top: 0, behavior: "smooth" }); }}><item.icon size={18} /><span>{item.label}</span></button>)}</nav>
