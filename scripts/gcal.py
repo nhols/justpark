@@ -33,8 +33,7 @@ CALENDAR_ID = os.environ["CALENDAR_ID"]
 S3_BUCKET = os.environ["JP_S3_BUCKET"]
 S3_KEY = os.environ["JP_S3_KEY"]
 EVENT_REMINDERS = {
-    "useDefault": False,
-    "overrides": [{"method": "popup", "minutes": 30}],
+    "useDefault": True,
 }
 
 
