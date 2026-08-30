@@ -22,6 +22,7 @@ function isSingleDay(start: string, end: string) {
 export function Bookings({ data }: { data: Dashboard }) {
   const monthCalendar = useRef<FullCalendar>(null);
   const [selected, setSelected] = useState<Booking>();
+  const [selectedDriver, setSelectedDriver] = useState<Driver>();
   const [query, setQuery] = useState("");
   const [cancelled, setCancelled] = useState(false);
   const [calendarMode, setCalendarMode] = useState<"week" | "month">("week");
@@ -73,7 +74,18 @@ export function Bookings({ data }: { data: Dashboard }) {
       <div className="panel-title"><div><h2>All bookings</h2><p>{rows.length} records</p></div><SearchBox value={query} onChange={setQuery} placeholder="Driver, registration or vehicle" /></div>
       <DataTable rows={[...rows].reverse()} onSelect={setSelected} columns={bookingColumns} />
     </div>
-    {selected && <BookingDetail booking={selected} close={() => setSelected(undefined)} />}
+    {selected && <BookingDetail
+      booking={selected}
+      close={() => setSelected(undefined)}
+      onDriverStats={() => {
+        const driver = data.drivers.find((item) => item.id === selected.driverId);
+        if (driver) {
+          setSelected(undefined);
+          setSelectedDriver(driver);
+        }
+      }}
+    />}
+    {selectedDriver && <DriverDetail driver={selectedDriver} bookings={data.bookings.filter((booking) => booking.driverId === selectedDriver.id)} close={() => setSelectedDriver(undefined)} />}
   </>;
 }
 
@@ -86,7 +98,7 @@ const bookingColumns: Column<Booking>[] = [
   { key: "status", label: "Status", render: (row) => <span className={`status ${row.status}`}>{row.status}</span> },
 ];
 
-function BookingDetail({ booking, close }: { booking: Booking; close: () => void }) {
+function BookingDetail({ booking, close, onDriverStats }: { booking: Booking; close: () => void; onDriverStats: () => void }) {
   return <Drawer title={booking.registration} close={close}>
     <div className="drawer-hero"><span className="status confirmed">{booking.status}</span><strong>{money(booking.earnings)}</strong><small>your earnings</small></div>
     <dl className="details">
@@ -98,6 +110,7 @@ function BookingDetail({ booking, close }: { booking: Booking; close: () => void
       <div><dt>Vehicle</dt><dd>{booking.vehicle} · {booking.vehicleColour || "colour unknown"}</dd></div>
       <div><dt>Driver paid</dt><dd>{money(booking.paid)}</dd></div>
     </dl>
+    <button className="drawer-action" type="button" onClick={onDriverStats}>Driver stats</button>
   </Drawer>;
 }
 
