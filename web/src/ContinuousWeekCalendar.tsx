@@ -39,8 +39,9 @@ function weekTitle(start: Date) {
 
 type Segment = { booking: Booking; day: number; startMinutes: number; endMinutes: number };
 
-export function ContinuousWeekCalendar({ bookings, initialDate, onSelect, onMonth }: {
+export function ContinuousWeekCalendar({ bookings, firstBookingIds, initialDate, onSelect, onMonth }: {
   bookings: Booking[];
+  firstBookingIds: ReadonlySet<number>;
   initialDate: Date;
   onSelect: (booking: Booking) => void;
   onMonth: (date: Date) => void;
@@ -204,7 +205,9 @@ export function ContinuousWeekCalendar({ bookings, initialDate, onSelect, onMont
         </div>
         <div className="continuous-now" style={{ left: axisWidth + todayIndex * dayWidth, top: nowTop, width: dayWidth }} />
         {segments.map((segment, index) => segment.day >= 0 && segment.day < RANGE_DAYS && <button
-          className={`continuous-event ${segment.booking.status === "cancelled" ? "cancelled" : ""}`}
+          className={["continuous-event", segment.booking.status === "cancelled" ? "cancelled" : "", firstBookingIds.has(segment.booking.id) ? "first-booking" : ""].filter(Boolean).join(" ")}
+          title={firstBookingIds.has(segment.booking.id) ? "First booking for this driver" : undefined}
+          aria-label={`${segment.booking.registration}${firstBookingIds.has(segment.booking.id) ? ", first booking for this driver" : ""}`}
           key={`${segment.booking.id}-${index}`}
           style={{ left: axisWidth + segment.day * dayWidth + eventGutter, width: dayWidth - eventGutter * 2, top: HEADER_HEIGHT + segment.startMinutes / 60 * hourHeight, height: Math.max(14, (segment.endMinutes - segment.startMinutes) / 60 * hourHeight) }}
           onClick={() => { if (!suppressClick.current) onSelect(segment.booking); }}

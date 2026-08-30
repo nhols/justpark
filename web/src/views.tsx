@@ -19,6 +19,17 @@ function isSingleDay(start: string, end: string) {
   return first.getFullYear() === last.getFullYear() && first.getMonth() === last.getMonth() && first.getDate() === last.getDate();
 }
 
+function firstBookingIds(bookings: Booking[]) {
+  const firstByDriver = new Map<number, Booking>();
+  bookings.filter((booking) => booking.status !== "cancelled").forEach((booking) => {
+    const current = firstByDriver.get(booking.driverId);
+    const startsEarlier = !current || new Date(booking.start).getTime() < new Date(current.start).getTime();
+    const tiesEarlier = current !== undefined && booking.start === current.start && booking.id < current.id;
+    if (startsEarlier || tiesEarlier) firstByDriver.set(booking.driverId, booking);
+  });
+  return new Set([...firstByDriver.values()].map((booking) => booking.id));
+}
+
 export function Bookings({ data }: { data: Dashboard }) {
   const monthCalendar = useRef<FullCalendar>(null);
   const [selected, setSelected] = useState<Booking>();
@@ -31,18 +42,19 @@ export function Bookings({ data }: { data: Dashboard }) {
     (cancelled || booking.status !== "cancelled") &&
     `${booking.driverName} ${booking.registration} ${booking.vehicle}`.toLowerCase().includes(query.toLowerCase()),
   );
+  const firstIds = firstBookingIds(data.bookings);
 
   const monthEvents = rows.map((booking) => ({
     id: String(booking.id), start: booking.start, end: booking.end,
     title: `${booking.registration} · ${booking.driverName}`,
-    className: booking.status === "cancelled" ? "cancelled" : "",
-    extendedProps: { registration: booking.registration, singleDay: isSingleDay(booking.start, booking.end) },
+    className: [booking.status === "cancelled" ? "cancelled" : "", firstIds.has(booking.id) ? "first-booking" : ""].filter(Boolean).join(" "),
+    extendedProps: { registration: booking.registration, singleDay: isSingleDay(booking.start, booking.end), firstBooking: firstIds.has(booking.id) },
   }));
 
   return <>
     <div className="panel calendar-panel">
-      <div className="calendar-options"><span>Bookings calendar</span><label className="check"><input type="checkbox" checked={cancelled} onChange={(e) => setCancelled(e.target.checked)} /> Show cancelled</label></div>
-      {calendarMode === "week" ? <ContinuousWeekCalendar bookings={rows} initialDate={calendarDate} onSelect={setSelected} onMonth={(date) => { setCalendarDate(date); setCalendarMode("month"); }} /> :
+      <div className="calendar-options"><span>Bookings calendar</span><div className="calendar-options-right"><span className="calendar-legend"><i className="legend-swatch first-booking" /> First booking</span><label className="check"><input type="checkbox" checked={cancelled} onChange={(e) => setCancelled(e.target.checked)} /> Show cancelled</label></div></div>
+      {calendarMode === "week" ? <ContinuousWeekCalendar bookings={rows} firstBookingIds={firstIds} initialDate={calendarDate} onSelect={setSelected} onMonth={(date) => { setCalendarDate(date); setCalendarMode("month"); }} /> :
         <FullCalendar
           ref={monthCalendar}
           plugins={[dayGridPlugin]}
@@ -67,6 +79,9 @@ export function Bookings({ data }: { data: Dashboard }) {
             ? <span className="calendar-registration">{event.extendedProps.registration}</span>
             : <><b>{timeText}</b> {event.title}</>}
           eventClick={({ event }) => setSelected(data.bookings.find((booking) => booking.id === Number(event.id)))}
+          eventDidMount={({ event, el }) => {
+            if (event.extendedProps.firstBooking) el.setAttribute("title", "First booking for this driver");
+          }}
         />
       }
     </div>
