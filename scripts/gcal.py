@@ -32,6 +32,10 @@ TZ = "Europe/London"
 CALENDAR_ID = os.environ["CALENDAR_ID"]
 S3_BUCKET = os.environ["JP_S3_BUCKET"]
 S3_KEY = os.environ["JP_S3_KEY"]
+EVENT_REMINDERS = {
+    "useDefault": False,
+    "overrides": [{"method": "popup", "minutes": 30}],
+}
 
 
 def get_data() -> BookingResponse:
@@ -154,6 +158,7 @@ def booking_to_event(booking: Booking) -> "Event":
         "description": booking_to_html(booking),
         "start": cast("EventDateTime", start),
         "end": cast("EventDateTime", end),
+        "reminders": EVENT_REMINDERS,
         "extendedProperties": {"private": private_props},
     }
 
@@ -194,6 +199,48 @@ def get_insert_delete(future_bookings: list[Booking], events: list["Event"]) -> 
     )
 
 
+def get_reminder_updates(future_bookings: list[Booking], events: list["Event"]) -> list["Event"]:
+    booking_hashes = {
+        booking_hash(booking)
+        for booking in future_bookings
+        if booking.status != "cancelled"
+    }
+    return [
+        event
+        for event in events
+        if event.get("id")
+        and event.get("extendedProperties", {}).get("private", {}).get("data_hash") in booking_hashes
+        and event.get("reminders") != EVENT_REMINDERS
+    ]
+
+
+def update_event_reminders(events: list["Event"]) -> None:
+    service = get_client()
+
+    def callback(request_id, response, exception):
+        if exception is not None:
+            logger.error(f"Error updating reminder for event {request_id}: {exception}")
+        else:
+            logger.info(f"Successfully updated reminder for event {request_id}")
+
+    batch = service.new_batch_http_request()
+    for event in events:
+        event_id = event["id"]
+        logger.info(f"Adding reminder update to batch for event ID: {event_id}")
+        batch.add(
+            service.events().patch(
+                calendarId=CALENDAR_ID,
+                eventId=event_id,
+                body={"reminders": EVENT_REMINDERS},
+            ),
+            callback=callback,
+            request_id=event_id,
+        )
+
+    logger.info(f"Executing reminder update batch with {len(events)} events")
+    batch.execute()
+
+
 def main() -> None:
     today = datetime.date.today()
     bookings = get_data()
@@ -202,9 +249,12 @@ def main() -> None:
     logger.info(f"Found {len(events)} events after {today}")
 
     to_insert, to_delete = get_insert_delete(future_bookings, events)
+    to_remind = get_reminder_updates(future_bookings, events)
     logger.info(f"{len(to_insert)} bookings to insert, {len(to_delete)} events to delete")
     if to_delete:
         delete_events([event["id"] for event in to_delete if "id" in event])
+    if to_remind:
+        update_event_reminders(to_remind)
     if to_insert:
         push_bookings_to_calendar(to_insert)
 
