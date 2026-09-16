@@ -203,6 +203,12 @@ const driverColumns: Column<Driver>[] = [
   { key: "earnings", label: "Earnings", render: (r) => <strong>{money(r.earnings)}</strong> },
 ];
 
+const rawDriverColumns: Column<Driver>[] = [
+  ...driverColumns.slice(0, 1),
+  { key: "phone", label: "Phone number", render: (r) => r.phone || "—" },
+  ...driverColumns.slice(1),
+];
+
 function DriverDetail({ driver, bookings, close }: { driver: Driver; bookings: Booking[]; close: () => void }) {
   const history = driverHistory(bookings);
   return <Drawer title={driver.name} close={close}>
@@ -234,7 +240,7 @@ export function RawData({ data }: { data: Dashboard }) {
   return <>
     <div className="panel"><div className="panel-title"><Segmented options={["bookings", "drivers", "vehicles"] as const} value={table} onChange={(value) => { setTable(value); setQuery(""); }} format={(v) => v[0].toUpperCase() + v.slice(1)} /><SearchBox value={query} onChange={setQuery} /></div>
       {table === "bookings" && <DataTable rows={data.bookings.filter(match)} columns={bookingColumns} />}
-      {table === "drivers" && <DataTable rows={data.drivers.filter(match)} columns={driverColumns} />}
+      {table === "drivers" && <DataTable rows={data.drivers.filter(match)} columns={rawDriverColumns} />}
       {table === "vehicles" && <DataTable rows={data.vehicles.filter(match)} columns={vehicleColumns} />}
     </div>
   </>;
