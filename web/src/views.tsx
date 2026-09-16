@@ -5,7 +5,7 @@ import {
   Bar, BarChart, CartesianGrid, Legend, Line, LineChart,
   ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
-import { CalendarDays, Clock3, Mail, Phone, Repeat2, Sparkles, UsersRound } from "lucide-react";
+import { CalendarDays, Clock3, Mail, Phone } from "lucide-react";
 import { DataTable, Drawer, Empty, Metric, SearchBox, Segmented, type Column } from "./components";
 import { ContinuousWeekCalendar } from "./ContinuousWeekCalendar";
 import { chartDate, dateTime, duration, money, percent, shortDate } from "./format";
@@ -110,7 +110,6 @@ const bookingColumns: Column<Booking>[] = [
   { key: "registration", label: "Registration", render: (row) => <span className="registration">{row.registration}</span> },
   { key: "vehicle", label: "Vehicle" },
   { key: "earnings", label: "Earnings", render: (row) => money(row.earnings) },
-  { key: "status", label: "Status", render: (row) => <span className={`status ${row.status}`}>{row.status}</span> },
 ];
 
 function BookingDetail({ booking, close, onDriverStats }: { booking: Booking; close: () => void; onDriverStats: () => void }) {
@@ -178,14 +177,7 @@ export function Drivers({ data }: { data: Dashboard }) {
   const [selected, setSelected] = useState<Driver>();
   const [query, setQuery] = useState("");
   const rows = data.drivers.filter((driver) => `${driver.name} ${driver.email} ${driver.vehicles}`.toLowerCase().includes(query.toLowerCase()));
-  const h = data.driverHighlights;
   return <>
-    <div className="highlights">
-      <article className="highlight feature"><Repeat2 /><span>Repeat drivers</span><strong>{percent(h.repeatRate)}</strong><small>{percent(h.returningRevenueShare)} of revenue comes from them</small></article>
-      <article className="highlight"><Sparkles /><span>Longest stay</span><strong>{duration(h.longestStay?.hours || 0)}</strong><small>{h.longestStay?.driver || "—"}</small></article>
-      <article className="highlight"><UsersRound /><span>Top three share</span><strong>{percent(h.topThreeRevenueShare)}</strong><small>of all earnings</small></article>
-      <article className="highlight"><Clock3 /><span>Favourite arrival</span><strong>{h.busiestHour || "—"}</strong><small>{h.busiestWeekday || "—"}</small></article>
-    </div>
     <div className="panel">
       <div className="panel-title"><div><h2>Driver leaderboard</h2><p>Ranked by your earnings</p></div><SearchBox value={query} onChange={setQuery} placeholder="Search drivers" /></div>
       <DataTable rows={rows} columns={driverColumns} onSelect={setSelected} />
