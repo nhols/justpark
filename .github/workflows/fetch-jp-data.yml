@@ -33,7 +33,7 @@ jobs:
     - name: Install Playwright browsers
       run: |
         uv venv --python 3.12
-        uv pip install playwright
+        uv pip install playwright boto3
         uv run playwright install --with-deps --only-shell chromium
     - name: Create session_state.json from secret
       run: |
@@ -49,7 +49,7 @@ jobs:
         JP_SESSION_STATE: session_state.json
 
       run: |
-        uv run scripts/fetch_jp_data.py
+        uv run python scripts/fetch_jp_data.py
 
     - name: Prepare dashboard data
       env:
