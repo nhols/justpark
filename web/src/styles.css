@@ -56,6 +56,12 @@ a { color: var(--green); text-decoration: none; }
 .freshness div { display: grid; }
 .freshness strong { font-size: 13px; font-weight: 600; }
 .freshness small { color: var(--muted); font-size: 11px; }
+.freshness.stale > span { background: var(--orange); box-shadow: 0 0 0 5px color-mix(in srgb, var(--orange) 15%, transparent); }
+.update-toast { position: fixed; z-index: 50; left: 50%; bottom: max(20px, env(safe-area-inset-bottom)); transform: translateX(-50%); width: max-content; max-width: calc(100vw - 32px); display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 16px; border: 1px solid var(--line); border-radius: 14px; color: var(--ink); background: var(--panel); box-shadow: var(--shadow); font-size: 14px; font-weight: 600; animation: toast-in .2s ease-out; }
+.update-toast > svg { color: var(--green); flex: none; }
+.update-refresh { border: 0; border-radius: 10px; padding: 8px 14px; color: #fff; background: var(--green); cursor: pointer; font-weight: 600; }
+html[data-theme="dark"] .update-refresh { color: var(--event-ink); }
+@keyframes toast-in { from { opacity: 0; transform: translate(-50%, 12px); } }
 .icon-button { border: 0; background: transparent; display: grid; place-items: center; padding: 9px; border-radius: 10px; cursor: pointer; }
 .icon-button:hover { background: var(--soft); }
 .theme-toggle { display: flex; gap: 3px; padding: 3px; border: 1px solid var(--line); border-radius: 12px; background: var(--soft); }

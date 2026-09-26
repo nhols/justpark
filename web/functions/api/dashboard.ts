@@ -7,6 +7,7 @@ type DashboardObject = {
 type Env = {
   DASHBOARD_BUCKET: {
     get(key: string): Promise<DashboardObject | null>;
+    head(key: string): Promise<{ httpEtag: string } | null>;
   };
 };
 
@@ -21,4 +22,10 @@ export async function onRequestGet({ env }: { env: Env }) {
   headers.set("ETag", object.httpEtag);
   headers.set("X-Content-Type-Options", "nosniff");
   return new Response(object.body, { headers });
+}
+
+export async function onRequestHead({ env }: { env: Env }) {
+  const object = await env.DASHBOARD_BUCKET.head("dashboard.json");
+  if (!object) return new Response(null, { status: 404 });
+  return new Response(null, { headers: { "Cache-Control": "private, no-store", ETag: object.httpEtag } });
 }
