@@ -22,6 +22,11 @@ function addDays(date: Date, days: number) {
   return next;
 }
 
+// First day of a 7-day window with the given date in the middle column.
+function centredStart(date: Date) {
+  return addDays(startOfDay(date), -3);
+}
+
 function dayDistance(first: Date, second: Date) {
   const a = Date.UTC(first.getFullYear(), first.getMonth(), first.getDate());
   const b = Date.UTC(second.getFullYear(), second.getMonth(), second.getDate());
@@ -56,7 +61,7 @@ export function ContinuousWeekCalendar({ bookings, firstBookingIds, initialDate,
   const [axisWidth, setAxisWidth] = useState(AXIS_WIDTH);
   const [hourHeight, setHourHeight] = useState(DEFAULT_HOUR_HEIGHT);
   const rangeStart = useMemo(() => addDays(startOfWeek(new Date()), -RANGE_DAYS / 2), []);
-  const [visibleDay, setVisibleDay] = useState(() => dayDistance(rangeStart, startOfWeek(initialDate)));
+  const [visibleDay, setVisibleDay] = useState(() => dayDistance(rangeStart, centredStart(initialDate)));
 
   const segments = useMemo(() => bookings.flatMap((booking) => {
     const start = new Date(booking.start);
@@ -98,14 +103,14 @@ export function ContinuousWeekCalendar({ bookings, firstBookingIds, initialDate,
   };
 
   const scrollToDate = (date: Date, behavior: ScrollBehavior = "auto") => {
-    viewport.current?.scrollTo({ left: dayDistance(rangeStart, startOfWeek(date)) * dayWidth, behavior });
+    viewport.current?.scrollTo({ left: dayDistance(rangeStart, centredStart(date)) * dayWidth, behavior });
   };
 
   useLayoutEffect(() => {
     const element = viewport.current;
     if (!element) return;
     const measure = () => {
-      const firstVisible = element.scrollLeft ? element.scrollLeft / dayWidthRef.current : dayDistance(rangeStart, startOfWeek(initialDate));
+      const firstVisible = element.scrollLeft ? element.scrollLeft / dayWidthRef.current : dayDistance(rangeStart, centredStart(initialDate));
       const nextAxisWidth = element.clientWidth < 600 ? 32 : AXIS_WIDTH;
       const width = (element.clientWidth - nextAxisWidth) / 7;
       const availableHeight = window.innerHeight - element.getBoundingClientRect().top - 20;
@@ -141,7 +146,7 @@ export function ContinuousWeekCalendar({ bookings, firstBookingIds, initialDate,
     <div className="continuous-toolbar">
       <div><button aria-label="Previous week" onClick={() => viewport.current?.scrollBy({ left: -dayWidth * 7, behavior: "smooth" })}>‹</button><button aria-label="Next week" onClick={() => viewport.current?.scrollBy({ left: dayWidth * 7, behavior: "smooth" })}>›</button><button onClick={() => scrollToDate(new Date(), "smooth")}>Today</button></div>
       <h2>{weekTitle(visibleStart)}</h2>
-      <div><button className="active">Week</button><button onClick={() => onMonth(visibleStart)}>Month</button></div>
+      <div><button className="active">Week</button><button onClick={() => onMonth(addDays(visibleStart, 3))}>Month</button></div>
     </div>
     <div
       className="continuous-viewport"
