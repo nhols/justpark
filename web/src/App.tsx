@@ -18,6 +18,8 @@ type Theme = "system" | "light" | "dark";
 const appIcon = `${import.meta.env.BASE_URL}icons/icon-192.png`;
 const dataUrl = `${import.meta.env.BASE_URL}${import.meta.env.DEV ? "dashboard.json" : "api/dashboard"}`;
 const updateCheckInterval = 5 * 60_000;
+const dataVersion = (response: Response) =>
+  (response.headers.get("X-Dashboard-Version") ?? response.headers.get("ETag"))?.replace(/^W\//, "") ?? null;
 
 function initialView(): View {
   const hash = location.hash.slice(1);
@@ -38,7 +40,7 @@ export default function App() {
     fetch(dataUrl, { cache: "no-store" })
       .then((response) => {
         if (!response.ok) throw new Error(`Data request failed (${response.status})`);
-        etag.current = response.headers.get("ETag");
+        etag.current = dataVersion(response);
         return response.json();
       })
       .then((payload: Dashboard) => {
@@ -55,7 +57,7 @@ export default function App() {
       if (document.visibilityState !== "visible" || !etag.current) return;
       fetch(dataUrl, { method: "HEAD", cache: "no-store" })
         .then((response) => {
-          const latest = response.ok && response.headers.get("ETag");
+          const latest = response.ok && dataVersion(response);
           if (latest && latest !== etag.current) setUpdateAvailable(true);
         })
         .catch(() => {});
