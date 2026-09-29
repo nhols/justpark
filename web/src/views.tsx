@@ -5,11 +5,12 @@ import {
   Bar, BarChart, CartesianGrid, Legend, Line, LineChart,
   ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
+import { format, parseISO } from "date-fns";
 import { CalendarDays, Clock3, Mail, Phone } from "lucide-react";
 import { DataTable, Drawer, Empty, Metric, SearchBox, Segmented, type Column } from "./components";
 import { ContinuousWeekCalendar } from "./ContinuousWeekCalendar";
-import { chartDate, dateTime, duration, money, percent, shortDate } from "./format";
-import type { Booking, Dashboard, Driver, OccupancySignal, Period, Vehicle } from "./types";
+import { chartDate, dateTime, duration, londonToday, money, percent, shortDate } from "./format";
+import type { Booking, Dashboard, Driver, OccupancySignal, Period, SeriesPoint, Vehicle } from "./types";
 
 const tooltip = { border: "1px solid var(--line)", borderRadius: 14, background: "var(--panel)", color: "var(--ink)", boxShadow: "var(--shadow)" };
 
@@ -128,21 +129,58 @@ function BookingDetail({ booking, close, onDriverStats }: { booking: Booking; cl
   </Drawer>;
 }
 
+type EarningsView = Period | "cumulative";
+type CumulativeRow = { day: string } & Record<string, number | string | null>;
+const yearColours = ["var(--green)", "var(--orange)", "#6b78a8", "#a65d71"];
+
+// Running total per calendar year, keyed by day of a leap year so every year shares the x-axis.
+function cumulativeByYear(days: SeriesPoint[], today: string) {
+  const values = new Map(days.map((point) => [point.date, point.value]));
+  const first = days[0]?.date;
+  const thisYear = Number(today.slice(0, 4));
+  const years = first ? Array.from({ length: thisYear - Number(first.slice(0, 4)) + 1 }, (_, i) => Number(first.slice(0, 4)) + i) : [];
+  const totals: Record<number, number> = {};
+  const rows: CumulativeRow[] = [];
+  for (let day = new Date(Date.UTC(2000, 0, 1)); day.getUTCFullYear() === 2000; day.setUTCDate(day.getUTCDate() + 1)) {
+    const monthDay = day.toISOString().slice(5, 10);
+    const row: CumulativeRow = { day: `2000-${monthDay}` };
+    years.forEach((year) => {
+      const date = `${year}-${monthDay}`;
+      if (date < first! || date > today) return void (row[year] = null);
+      totals[year] = (totals[year] ?? 0) + (values.get(date) ?? 0);
+      row[year] = Math.round(totals[year] * 100) / 100;
+    });
+    rows.push(row);
+  }
+  return { years, rows, totals };
+}
+
 export function Earnings({ data }: { data: Dashboard }) {
-  const [period, setPeriod] = useState<Period>("week");
-  const series = data.earnings.periods[period];
+  const [view, setView] = useState<EarningsView>("week");
+  const cumulative = view === "cumulative" ? cumulativeByYear(data.earnings.periods.day, londonToday()) : undefined;
+  const series = view === "cumulative" ? [] : data.earnings.periods[view];
   return <>
     <div className="metrics three"><Metric label="All-time earnings" value={money(data.earnings.total)} /><Metric label="This tax year" value={money(data.earnings.taxYear)} note="Since 6 April" /><Metric label="Paid bookings" value={data.earnings.bookings.toLocaleString()} /></div>
     <div className="panel chart-panel">
-      <div className="panel-title"><div><h2>Earnings over time</h2><p>Net space-owner earnings</p></div><Segmented options={["day", "week", "month", "quarter", "year"] as Period[]} value={period} onChange={setPeriod} format={(value) => value[0].toUpperCase() + value.slice(1)} /></div>
+      <div className="panel-title"><div><h2>Earnings over time</h2><p>{cumulative ? "Cumulative net earnings by calendar year" : "Net space-owner earnings"}</p></div><Segmented options={["day", "week", "month", "quarter", "year", "cumulative"] as EarningsView[]} value={view} onChange={setView} format={(value) => value[0].toUpperCase() + value.slice(1)} /></div>
       <ResponsiveContainer width="100%" height={360}>
-        <BarChart data={series} margin={{ top: 16, right: 8, bottom: 0, left: 0 }}>
-          <CartesianGrid vertical={false} stroke="var(--line)" /><XAxis dataKey="date" tickFormatter={(v) => chartDate(v, period === "year")} axisLine={false} tickLine={false} minTickGap={30} /><YAxis tickFormatter={(v) => `£${v}`} axisLine={false} tickLine={false} width={52} />
+        {cumulative ? <LineChart data={cumulative.rows} margin={{ top: 16, right: 8, bottom: 0, left: 0 }}>
+          <CartesianGrid vertical={false} stroke="var(--line)" /><XAxis dataKey="day" tickFormatter={(v) => format(parseISO(v), "MMM")} ticks={cumulative.rows.filter((row) => row.day.endsWith("-01")).map((row) => row.day)} axisLine={false} tickLine={false} /><YAxis tickFormatter={(v) => `£${v}`} axisLine={false} tickLine={false} width={60} />
+          <Tooltip formatter={(value, name) => [money(Number(value)), name]} labelFormatter={(v) => format(parseISO(String(v)), "d MMM")} contentStyle={tooltip} /><Legend />
+          {cumulative.years.map((year, i) => {
+            const age = cumulative.years.length - 1 - i;
+            return <Line key={year} dataKey={String(year)} name={String(year)} stroke={yearColours[age] ?? "var(--muted)"} strokeWidth={age === 0 ? 3 : 2} dot={false} activeDot={{ r: 4 }} />;
+          })}
+        </LineChart> : <BarChart data={series} margin={{ top: 16, right: 8, bottom: 0, left: 0 }}>
+          <CartesianGrid vertical={false} stroke="var(--line)" /><XAxis dataKey="date" tickFormatter={(v) => chartDate(v, view === "year")} axisLine={false} tickLine={false} minTickGap={30} /><YAxis tickFormatter={(v) => `£${v}`} axisLine={false} tickLine={false} width={52} />
           <Tooltip formatter={(value) => money(Number(value))} labelFormatter={(v) => shortDate(String(v))} contentStyle={tooltip} /><Bar dataKey="value" fill="var(--green)" radius={[6, 6, 2, 2]} maxBarSize={52} />
-        </BarChart>
+        </BarChart>}
       </ResponsiveContainer>
     </div>
-    <div className="panel"><DataTable rows={[...series].reverse()} columns={[{ key: "date", label: "Period", render: (r) => shortDate(r.date) }, { key: "value", label: "Earnings", render: (r) => money(r.value) }]} /></div>
+    <div className="panel">{cumulative
+      ? <DataTable rows={[...cumulative.years].reverse().map((year) => ({ year, value: cumulative.totals[year] ?? 0 }))} columns={[{ key: "year", label: "Year" }, { key: "value", label: "Earnings", render: (r) => money(r.value) }]} />
+      : <DataTable rows={[...series].reverse()} columns={[{ key: "date", label: "Period", render: (r) => shortDate(r.date) }, { key: "value", label: "Earnings", render: (r) => money(r.value) }]} />}
+    </div>
   </>;
 }
 
@@ -150,10 +188,7 @@ export function Occupancy({ data }: { data: Dashboard }) {
   const [signal, setSignal] = useState<OccupancySignal>("minutes");
   const [windows, setWindows] = useState([7, 30]);
   const colours = ["#2d6c5b", "#d99662", "#6b78a8", "#a65d71"];
-  const todayParts = Object.fromEntries(new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit",
-  }).formatToParts(new Date()).map((part) => [part.type, part.value]));
-  const today = `${todayParts.year}-${todayParts.month}-${todayParts.day}`;
+  const today = londonToday();
   const toggle = (window: number) => setWindows((current) => current.includes(window) ? current.filter((v) => v !== window) : [...current, window].sort((a, b) => a - b));
   return <>
     <div className="panel chart-panel">

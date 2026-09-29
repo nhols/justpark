@@ -16,3 +16,9 @@ export const relative = (value: string) => formatDistanceToNowStrict(parseISO(va
 export const shortDate = (value: string) => format(parseISO(value), "d MMM yyyy");
 export const dateTime = (value: string) => format(parseISO(value), "EEE d MMM, HH:mm");
 export const chartDate = (value: string, long = false) => format(parseISO(value), long ? "MMM yyyy" : "d MMM");
+export const londonToday = () => {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(new Date()).map((part) => [part.type, part.value]));
+  return `${parts.year}-${parts.month}-${parts.day}`;
+};

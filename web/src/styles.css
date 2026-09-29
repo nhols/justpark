@@ -305,7 +305,8 @@ html[data-theme="dark"] .booking-band-label { color: #d0cec5; }
   .panel { padding: 17px; border-radius: 17px; }
   .table-wrap { margin: 0 -17px -17px; }
   th, td { padding-left: 17px; padding-right: 17px; }
-  .segmented { overflow: auto; }
+  .segmented { overflow: auto; gap: 2px; }
+  .segmented button { padding: 7px 8px; }
   .occupancy-controls { gap: 12px; }
   .fc .fc-toolbar { align-items: start; gap: 9px; flex-wrap: wrap; }
   .fc .fc-toolbar-chunk:nth-child(2) { order: -1; width: 100%; }
