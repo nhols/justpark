@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { Search, X } from "lucide-react";
+import { memo, useEffect, useState, type ReactNode } from "react";
+import { ChevronsRight, Search, X } from "lucide-react";
 
 export function Metric({ label, value, note }: { label: string; value: ReactNode; note?: string }) {
   return (
@@ -45,7 +45,8 @@ export function Drawer({ title, children, close }: { title: string; children: Re
           <h2>{title}</h2>
           <button className="icon-button" onClick={close} aria-label="Close"><X size={20} /></button>
         </header>
-        {children}
+        <div className="drawer-body">{children}</div>
+        <button className="drawer-collapse" onClick={close} aria-label="Collapse panel"><ChevronsRight size={18} /></button>
       </aside>
     </div>
   );
@@ -53,7 +54,22 @@ export function Drawer({ title, children, close }: { title: string; children: Re
 
 export type Column<T> = { key: keyof T; label: string; render?: (row: T) => ReactNode };
 
-export function DataTable<T extends object>({ rows, columns, onSelect }: {
+// Steps through render stages one painted frame at a time, so heavy content can follow a light first paint.
+export function useRenderStages(last: number) {
+  const [stage, setStage] = useState(0);
+  useEffect(() => {
+    if (stage >= last) return;
+    let timeout: number | undefined;
+    const frame = requestAnimationFrame(() => { timeout = window.setTimeout(() => setStage(stage + 1), 0); });
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(timeout);
+    };
+  }, [stage, last]);
+  return stage;
+}
+
+function DataTableRows<T extends object>({ rows, columns, onSelect }: {
   rows: T[];
   columns: Column<T>[];
   onSelect?: (row: T) => void;
@@ -73,6 +89,9 @@ export function DataTable<T extends object>({ rows, columns, onSelect }: {
     </div>
   );
 }
+
+// Memoised so the long bookings table isn't re-rendered when only the calendar changes.
+export const DataTable = memo(DataTableRows) as typeof DataTableRows;
 
 export function SearchBox({ value, onChange, placeholder = "Search" }: {
   value: string;

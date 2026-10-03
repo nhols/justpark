@@ -1,6 +1,4 @@
-import { useRef, useState } from "react";
-import FullCalendar from "@fullcalendar/react";
-import dayGridPlugin from "@fullcalendar/daygrid";
+import { useMemo, useState } from "react";
 import {
   Bar, BarChart, CartesianGrid, Legend, Line, LineChart,
   ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,
@@ -8,17 +6,12 @@ import {
 import { format, parseISO } from "date-fns";
 import { CalendarDays, Clock3, Mail, Phone } from "lucide-react";
 import { DataTable, Drawer, Empty, Metric, SearchBox, Segmented, type Column } from "./components";
+import { ContinuousMonthCalendar } from "./ContinuousMonthCalendar";
 import { ContinuousWeekCalendar } from "./ContinuousWeekCalendar";
 import { chartDate, dateTime, duration, londonToday, money, percent, shortDate } from "./format";
 import type { Booking, Dashboard, Driver, OccupancySignal, Period, SeriesPoint, Vehicle } from "./types";
 
 const tooltip = { border: "1px solid var(--line)", borderRadius: 14, background: "var(--panel)", color: "var(--ink)", boxShadow: "var(--shadow)" };
-
-function isSingleDay(start: string, end: string) {
-  const first = new Date(start);
-  const last = new Date(new Date(end).getTime() - 1);
-  return first.getFullYear() === last.getFullYear() && first.getMonth() === last.getMonth() && first.getDate() === last.getDate();
-}
 
 function firstBookingIds(bookings: Booking[]) {
   const firstByDriver = new Map<number, Booking>();
@@ -32,84 +25,28 @@ function firstBookingIds(bookings: Booking[]) {
 }
 
 export function Bookings({ data }: { data: Dashboard }) {
-  const monthCalendar = useRef<FullCalendar>(null);
-  const monthSwipe = useRef<{ x: number; y: number; time: number }>(undefined);
   const [selected, setSelected] = useState<Booking>();
   const [selectedDriver, setSelectedDriver] = useState<Driver>();
   const [query, setQuery] = useState("");
   const [cancelled, setCancelled] = useState(false);
   const [calendarMode, setCalendarMode] = useState<"week" | "month">("week");
   const [calendarDate, setCalendarDate] = useState(() => new Date());
-  const rows = data.bookings.filter((booking) =>
+  const rows = useMemo(() => data.bookings.filter((booking) =>
     (cancelled || booking.status !== "cancelled") &&
     `${booking.driverName} ${booking.registration} ${booking.vehicle}`.toLowerCase().includes(query.toLowerCase()),
-  );
-  const firstIds = firstBookingIds(data.bookings);
-
-  const monthEvents = rows.map((booking) => ({
-    id: String(booking.id), start: booking.start, end: booking.end,
-    title: `${booking.registration} · ${booking.driverName}`,
-    className: [booking.status === "cancelled" ? "cancelled" : "", firstIds.has(booking.id) ? "first-booking" : ""].filter(Boolean).join(" "),
-    extendedProps: { registration: booking.registration, singleDay: isSingleDay(booking.start, booking.end), firstBooking: firstIds.has(booking.id) },
-  }));
+  ), [data.bookings, cancelled, query]);
+  const newestFirst = useMemo(() => [...rows].reverse(), [rows]);
+  const firstIds = useMemo(() => firstBookingIds(data.bookings), [data.bookings]);
 
   return <>
     <div className="panel calendar-panel">
       <div className="calendar-options"><span>Bookings calendar</span><div className="calendar-options-right"><span className="calendar-legend"><i className="legend-swatch first-booking" /> First booking</span><label className="check"><input type="checkbox" checked={cancelled} onChange={(e) => setCancelled(e.target.checked)} /> Show cancelled</label></div></div>
       {calendarMode === "week" ? <ContinuousWeekCalendar bookings={rows} firstBookingIds={firstIds} initialDate={calendarDate} onSelect={setSelected} onMonth={(date) => { setCalendarDate(date); setCalendarMode("month"); }} /> :
-        <div
-          onTouchStart={(event) => {
-            const touch = event.touches[0];
-            monthSwipe.current = event.touches.length === 1 ? { x: touch.clientX, y: touch.clientY, time: performance.now() } : undefined;
-          }}
-          onTouchEnd={(event) => {
-            const start = monthSwipe.current;
-            monthSwipe.current = undefined;
-            if (!start) return;
-            const touch = event.changedTouches[0];
-            const dx = touch.clientX - start.x;
-            const dy = touch.clientY - start.y;
-            if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5 || performance.now() - start.time > 800) return;
-            const api = monthCalendar.current?.getApi();
-            if (dx < 0) api?.next();
-            else api?.prev();
-          }}
-          onTouchCancel={() => { monthSwipe.current = undefined; }}
-        >
-          <FullCalendar
-            ref={monthCalendar}
-            plugins={[dayGridPlugin]}
-            initialView="dayGridMonth"
-            initialDate={calendarDate}
-            firstDay={1}
-            height="auto"
-            customButtons={{
-              continuousWeek: {
-                text: "Week",
-                click: () => {
-                  const date = monthCalendar.current?.getApi().getDate() ?? new Date();
-                  setCalendarDate(date);
-                  setCalendarMode("week");
-                },
-              },
-            }}
-            headerToolbar={{ left: "prev,next today", center: "title", right: "continuousWeek,dayGridMonth" }}
-            buttonText={{ week: "Week", month: "Month", today: "Today" }}
-            events={monthEvents}
-            eventContent={({ event, timeText, view }) => view.type === "dayGridMonth" && event.extendedProps.singleDay
-              ? <span className="calendar-registration">{event.extendedProps.registration}</span>
-              : <><b>{timeText}</b> {event.title}</>}
-            eventClick={({ event }) => setSelected(data.bookings.find((booking) => booking.id === Number(event.id)))}
-            eventDidMount={({ event, el }) => {
-              if (event.extendedProps.firstBooking) el.setAttribute("title", "First booking for this driver");
-            }}
-          />
-        </div>
-      }
+        <ContinuousMonthCalendar bookings={rows} firstBookingIds={firstIds} initialDate={calendarDate} onSelect={setSelected} onWeek={(date) => { setCalendarDate(date); setCalendarMode("week"); }} />}
     </div>
     <div className="panel">
       <div className="panel-title"><div><h2>All bookings</h2><p>{rows.length} records</p></div><SearchBox value={query} onChange={setQuery} placeholder="Driver, registration or vehicle" /></div>
-      <DataTable rows={[...rows].reverse()} onSelect={setSelected} columns={bookingColumns} />
+      <DataTable rows={newestFirst} onSelect={setSelected} columns={bookingColumns} />
     </div>
     {selected && <BookingDetail
       booking={selected}

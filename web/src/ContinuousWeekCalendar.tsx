@@ -1,4 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useRenderStages } from "./components";
 import type { Booking } from "./types";
 
 const AXIS_WIDTH = 52;
@@ -6,17 +8,17 @@ const HEADER_HEIGHT = 40;
 const DEFAULT_HOUR_HEIGHT = 24;
 const RANGE_DAYS = 365 * 20;
 
-function startOfDay(date: Date) {
+export function startOfDay(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
-function startOfWeek(date: Date) {
+export function startOfWeek(date: Date) {
   const start = startOfDay(date);
   start.setDate(start.getDate() - (start.getDay() + 6) % 7);
   return start;
 }
 
-function addDays(date: Date, days: number) {
+export function addDays(date: Date, days: number) {
   const next = new Date(date);
   next.setDate(next.getDate() + days);
   return next;
@@ -27,7 +29,7 @@ function centredStart(date: Date) {
   return addDays(startOfDay(date), -3);
 }
 
-function dayDistance(first: Date, second: Date) {
+export function dayDistance(first: Date, second: Date) {
   const a = Date.UTC(first.getFullYear(), first.getMonth(), first.getDate());
   const b = Date.UTC(second.getFullYear(), second.getMonth(), second.getDate());
   return Math.round((b - a) / 86_400_000);
@@ -61,6 +63,7 @@ export function ContinuousWeekCalendar({ bookings, firstBookingIds, initialDate,
   const [axisWidth, setAxisWidth] = useState(AXIS_WIDTH);
   const [hourHeight, setHourHeight] = useState(DEFAULT_HOUR_HEIGHT);
   const rangeStart = useMemo(() => addDays(startOfWeek(new Date()), -RANGE_DAYS / 2), []);
+  const stage = useRenderStages(1);
   const [visibleDay, setVisibleDay] = useState(() => dayDistance(rangeStart, centredStart(initialDate)));
 
   const segments = useMemo(() => bookings.flatMap((booking) => {
@@ -144,9 +147,9 @@ export function ContinuousWeekCalendar({ bookings, firstBookingIds, initialDate,
 
   return <div className="continuous-calendar" style={{ "--calendar-axis": `${axisWidth}px`, "--calendar-header": `${HEADER_HEIGHT}px`, "--calendar-hour": `${hourHeight}px` } as CSSProperties}>
     <div className="continuous-toolbar">
-      <div><button aria-label="Previous week" onClick={() => viewport.current?.scrollBy({ left: -dayWidth * 7, behavior: "smooth" })}>‹</button><button aria-label="Next week" onClick={() => viewport.current?.scrollBy({ left: dayWidth * 7, behavior: "smooth" })}>›</button><button onClick={() => scrollToDate(new Date(), "smooth")}>Today</button></div>
+      <div><span className="toolbar-group"><button className="toolbar-icon" aria-label="Previous week" onClick={() => viewport.current?.scrollBy({ left: -dayWidth * 7, behavior: "smooth" })}><ChevronLeft size={18} /></button><button className="toolbar-icon" aria-label="Next week" onClick={() => viewport.current?.scrollBy({ left: dayWidth * 7, behavior: "smooth" })}><ChevronRight size={18} /></button></span><button onClick={() => scrollToDate(new Date(), "smooth")}>Today</button></div>
       <h2>{weekTitle(visibleStart)}</h2>
-      <div><button className="active">Week</button><button onClick={() => onMonth(addDays(visibleStart, 3))}>Month</button></div>
+      <div>{stage < 1 && <span className="toolbar-spinner" role="status" aria-label="Loading bookings" />}<span className="toolbar-group"><button className="active">Week</button><button onClick={() => onMonth(addDays(visibleStart, 3))}>Month</button></span></div>
     </div>
     <div
       className="continuous-viewport"
@@ -209,7 +212,7 @@ export function ContinuousWeekCalendar({ bookings, firstBookingIds, initialDate,
           {Array.from({ length: 24 }, (_, hour) => <div className="continuous-hour" key={hour} style={{ top: hour * hourHeight, height: hourHeight }}>{hour === 0 ? "12am" : hour < 12 ? `${hour}am` : hour === 12 ? "12pm" : `${hour - 12}pm`}</div>)}
         </div>
         <div className="continuous-now" style={{ left: axisWidth + todayIndex * dayWidth, top: nowTop, width: dayWidth }} />
-        {segments.map((segment, index) => segment.day >= 0 && segment.day < RANGE_DAYS && <button
+        {stage >= 1 && segments.map((segment, index) => segment.day >= 0 && segment.day < RANGE_DAYS && <button
           className={["continuous-event", segment.booking.status === "cancelled" ? "cancelled" : "", firstBookingIds.has(segment.booking.id) ? "first-booking" : ""].filter(Boolean).join(" ")}
           title={firstBookingIds.has(segment.booking.id) ? "First booking for this driver" : undefined}
           aria-label={`${segment.booking.registration}${firstBookingIds.has(segment.booking.id) ? ", first booking for this driver" : ""}`}

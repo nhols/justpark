@@ -92,16 +92,19 @@ footer { padding: 24px 0 40px; border-top: 1px solid var(--line); color: var(--m
 .calendar-legend { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; white-space: nowrap; }
 .legend-swatch { width: 12px; height: 12px; flex: 0 0 auto; border-radius: 3px; background: var(--first-booking); }
 .continuous-calendar { --calendar-axis: 52px; width: 100%; min-width: 0; max-width: 100%; overflow: hidden; }
-.continuous-toolbar { width: 100%; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 12px; margin-bottom: 16px; }
+.continuous-toolbar { width: 100%; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 12px; margin-bottom: 18px; }
 .continuous-toolbar > div { min-width: 0; display: flex; gap: 0; }
 .continuous-toolbar > div:last-child { justify-content: end; }
-.continuous-toolbar button { min-height: 35px; border: 1px solid var(--line); padding: 0 12px; color: var(--muted); background: var(--panel); cursor: pointer; font-size: 12px; font-weight: 600; }
-.continuous-toolbar button:first-child { border-radius: 9px 0 0 9px; }
-.continuous-toolbar button:last-child { border-radius: 0 9px 9px 0; }
-.continuous-toolbar button:only-child { border-radius: 9px; }
-.continuous-toolbar button + button { margin-left: -1px; }
+.continuous-toolbar button { min-height: 32px; border: 1px solid var(--line); border-radius: 9px; padding: 6px 9.6px; color: var(--muted); background: var(--panel); cursor: pointer; font-size: 12px; font-weight: 600; line-height: 18px; }
+.continuous-toolbar .toolbar-group + button { margin-left: 9px; }
+.continuous-toolbar .toolbar-group { display: inline-flex; }
+.continuous-toolbar .toolbar-group button + button { margin-left: -1px; }
+.continuous-toolbar .toolbar-icon { display: inline-grid; place-items: center; }
 .continuous-toolbar button:hover { background: var(--soft); }
 .continuous-toolbar button.active { color: #fff; border-color: var(--green); background: var(--green); }
+.continuous-toolbar > div:last-child { align-items: center; }
+.toolbar-spinner { width: 14px; height: 14px; margin-right: 10px; border: 2px solid var(--line); border-top-color: var(--green); border-radius: 50%; animation: spin .8s linear infinite; }
+.calendar-placeholder { border: 1px solid var(--line); }
 .continuous-toolbar h2 { margin: 0; font: 700 20px "Manrope"; letter-spacing: -.03em; }
 .continuous-viewport { display: block; width: 100%; min-width: 0; max-width: 100%; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; touch-action: pan-x pan-y; cursor: grab; scrollbar-width: thin; }
 .continuous-viewport.dragging { cursor: grabbing; user-select: none; }
@@ -161,9 +164,12 @@ tr.selectable:hover { background: var(--hover); }
 .highlight.feature svg, .highlight.feature span, .highlight.feature small { color: #bcd3c9; }
 
 .scrim { position: fixed; inset: 0; z-index: 100; display: flex; justify-content: end; background: #10241c55; backdrop-filter: blur(3px); }
-.drawer { width: min(480px, 94vw); height: 100%; overflow: auto; padding: 28px; color: var(--ink); background: var(--panel); box-shadow: -20px 0 60px #0007; animation: slide-in .2s ease-out; }
+.drawer { display: flex; flex-direction: column; width: min(480px, 94vw); height: 100%; overflow: auto; padding: 28px; color: var(--ink); background: var(--panel); box-shadow: -20px 0 60px #0007; animation: slide-in .2s ease-out; }
 .drawer > header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 22px; border-bottom: 1px solid var(--line); }
 .drawer h2 { margin: 0; font: 700 23px "Manrope"; }
+.drawer-body { flex: 1 0 auto; }
+.drawer-collapse { position: sticky; bottom: 0; align-self: start; display: grid; place-items: center; width: 36px; height: 36px; margin-top: 16px; border: 1px solid var(--line); border-radius: 50%; padding: 0; color: var(--muted); background: var(--panel); cursor: pointer; box-shadow: 0 2px 8px #0000000f; }
+.drawer-collapse:hover { color: var(--ink); background: var(--soft); }
 .drawer-hero { display: flex; flex-direction: column; align-items: start; padding: 34px 0; }
 .drawer-hero strong { margin-top: 12px; font: 700 42px "Manrope"; letter-spacing: -.05em; }
 .drawer-hero small { color: var(--muted); }
@@ -274,6 +280,9 @@ html[data-theme="dark"] .booking-band-label { color: #d0cec5; }
 .fc .fc-event.first-booking .fc-event-main, .fc .fc-event.first-booking .calendar-registration { color: #102018 !important; }
 .fc .fc-event.cancelled { opacity: .6; background: #a97268; }
 .fc .fc-daygrid-event { padding: 4px 6px; }
+/* Keep the natural-height month spacing inside the scrolling month view. */
+.month-calendar .fc .fc-daygrid-day-events { margin-bottom: 1em; }
+.month-calendar .fc .fc-daygrid-month-start { font-weight: inherit; }
 .calendar-registration { display: block; width: 100%; overflow: hidden; color: var(--event-ink) !important; white-space: nowrap; text-overflow: ellipsis; font: 700 11px ui-monospace, SFMono-Regular, Menlo, monospace; }
 
 .recharts-text { fill: #89918d; font-size: 11px; }
@@ -313,8 +322,8 @@ html[data-theme="dark"] .booking-band-label { color: #d0cec5; }
   .calendar-panel { padding: 12px; }
   .calendar-options { align-items: flex-start; flex-wrap: wrap; }
   .calendar-options-right { margin-left: auto; flex-wrap: wrap; justify-content: end; }
-  .continuous-toolbar { grid-template-columns: 1fr auto; }
-  .continuous-toolbar h2 { grid-column: 1 / -1; grid-row: 1; text-align: center; font-size: 17px; }
+  .continuous-toolbar { grid-template-columns: 1fr auto; gap: 9px; }
+  .continuous-toolbar h2 { grid-column: 1 / -1; grid-row: 1; font-size: 20px; }
   .continuous-toolbar > div:first-child { grid-column: 1; grid-row: 2; }
   .continuous-toolbar > div:last-child { grid-column: 2; grid-row: 2; }
   .continuous-day-header { overflow: hidden; padding: 0 1px; white-space: nowrap; font-size: 7px; letter-spacing: -.04em; }
