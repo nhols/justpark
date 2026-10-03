@@ -164,11 +164,13 @@ tr.selectable:hover { background: var(--hover); }
 .highlight.feature svg, .highlight.feature span, .highlight.feature small { color: #bcd3c9; }
 
 .scrim { position: fixed; inset: 0; z-index: 100; display: flex; justify-content: end; background: #10241c55; backdrop-filter: blur(3px); }
-.drawer { display: flex; flex-direction: column; width: min(480px, 94vw); height: 100%; overflow: auto; padding: 28px; color: var(--ink); background: var(--panel); box-shadow: -20px 0 60px #0007; animation: slide-in .2s ease-out; }
+.drawer { width: min(480px, 94vw); height: 100%; overflow: auto; padding: 28px; color: var(--ink); background: var(--panel); box-shadow: -20px 0 60px #0007; animation: slide-in .2s ease-out; }
 .drawer > header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 22px; border-bottom: 1px solid var(--line); }
 .drawer h2 { margin: 0; font: 700 23px "Manrope"; }
-.drawer-body { flex: 1 0 auto; }
-.drawer-collapse { position: sticky; bottom: 0; align-self: start; display: grid; place-items: center; width: 36px; height: 36px; margin-top: 16px; border: 1px solid var(--line); border-radius: 50%; padding: 0; color: var(--muted); background: var(--panel); cursor: pointer; box-shadow: 0 2px 8px #0000000f; }
+.drawer-collapse { position: relative; z-index: 1; flex: 0 0 auto; align-self: end; display: grid; place-items: center; width: 20px; height: 56px; margin-bottom: 120px; border: 1px solid var(--line); border-right: 0; border-radius: 10px 0 0 10px; padding: 0; color: var(--muted); background: var(--panel); cursor: pointer; box-shadow: -4px 0 12px #0000001a; animation: slide-in .2s ease-out; }
+.drawer, .drawer-collapse { translate: var(--drawer-drag, 0) 0; }
+.drawer { touch-action: pan-y; }
+.scrim.settling .drawer, .scrim.settling .drawer-collapse { transition: translate .18s ease-out; }
 .drawer-collapse:hover { color: var(--ink); background: var(--soft); }
 .drawer-hero { display: flex; flex-direction: column; align-items: start; padding: 34px 0; }
 .drawer-hero strong { margin-top: 12px; font: 700 42px "Manrope"; letter-spacing: -.05em; }
