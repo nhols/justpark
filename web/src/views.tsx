@@ -33,6 +33,7 @@ function firstBookingIds(bookings: Booking[]) {
 
 export function Bookings({ data }: { data: Dashboard }) {
   const monthCalendar = useRef<FullCalendar>(null);
+  const monthSwipe = useRef<{ x: number; y: number; time: number }>(undefined);
   const [selected, setSelected] = useState<Booking>();
   const [selectedDriver, setSelectedDriver] = useState<Driver>();
   const [query, setQuery] = useState("");
@@ -56,34 +57,54 @@ export function Bookings({ data }: { data: Dashboard }) {
     <div className="panel calendar-panel">
       <div className="calendar-options"><span>Bookings calendar</span><div className="calendar-options-right"><span className="calendar-legend"><i className="legend-swatch first-booking" /> First booking</span><label className="check"><input type="checkbox" checked={cancelled} onChange={(e) => setCancelled(e.target.checked)} /> Show cancelled</label></div></div>
       {calendarMode === "week" ? <ContinuousWeekCalendar bookings={rows} firstBookingIds={firstIds} initialDate={calendarDate} onSelect={setSelected} onMonth={(date) => { setCalendarDate(date); setCalendarMode("month"); }} /> :
-        <FullCalendar
-          ref={monthCalendar}
-          plugins={[dayGridPlugin]}
-          initialView="dayGridMonth"
-          initialDate={calendarDate}
-          firstDay={1}
-          height="auto"
-          customButtons={{
-            continuousWeek: {
-              text: "Week",
-              click: () => {
-                const date = monthCalendar.current?.getApi().getDate() ?? new Date();
-                setCalendarDate(date);
-                setCalendarMode("week");
+        <div
+          onTouchStart={(event) => {
+            const touch = event.touches[0];
+            monthSwipe.current = event.touches.length === 1 ? { x: touch.clientX, y: touch.clientY, time: performance.now() } : undefined;
+          }}
+          onTouchEnd={(event) => {
+            const start = monthSwipe.current;
+            monthSwipe.current = undefined;
+            if (!start) return;
+            const touch = event.changedTouches[0];
+            const dx = touch.clientX - start.x;
+            const dy = touch.clientY - start.y;
+            if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5 || performance.now() - start.time > 800) return;
+            const api = monthCalendar.current?.getApi();
+            if (dx < 0) api?.next();
+            else api?.prev();
+          }}
+          onTouchCancel={() => { monthSwipe.current = undefined; }}
+        >
+          <FullCalendar
+            ref={monthCalendar}
+            plugins={[dayGridPlugin]}
+            initialView="dayGridMonth"
+            initialDate={calendarDate}
+            firstDay={1}
+            height="auto"
+            customButtons={{
+              continuousWeek: {
+                text: "Week",
+                click: () => {
+                  const date = monthCalendar.current?.getApi().getDate() ?? new Date();
+                  setCalendarDate(date);
+                  setCalendarMode("week");
+                },
               },
-            },
-          }}
-          headerToolbar={{ left: "prev,next today", center: "title", right: "continuousWeek,dayGridMonth" }}
-          buttonText={{ week: "Week", month: "Month", today: "Today" }}
-          events={monthEvents}
-          eventContent={({ event, timeText, view }) => view.type === "dayGridMonth" && event.extendedProps.singleDay
-            ? <span className="calendar-registration">{event.extendedProps.registration}</span>
-            : <><b>{timeText}</b> {event.title}</>}
-          eventClick={({ event }) => setSelected(data.bookings.find((booking) => booking.id === Number(event.id)))}
-          eventDidMount={({ event, el }) => {
-            if (event.extendedProps.firstBooking) el.setAttribute("title", "First booking for this driver");
-          }}
-        />
+            }}
+            headerToolbar={{ left: "prev,next today", center: "title", right: "continuousWeek,dayGridMonth" }}
+            buttonText={{ week: "Week", month: "Month", today: "Today" }}
+            events={monthEvents}
+            eventContent={({ event, timeText, view }) => view.type === "dayGridMonth" && event.extendedProps.singleDay
+              ? <span className="calendar-registration">{event.extendedProps.registration}</span>
+              : <><b>{timeText}</b> {event.title}</>}
+            eventClick={({ event }) => setSelected(data.bookings.find((booking) => booking.id === Number(event.id)))}
+            eventDidMount={({ event, el }) => {
+              if (event.extendedProps.firstBooking) el.setAttribute("title", "First booking for this driver");
+            }}
+          />
+        </div>
       }
     </div>
     <div className="panel">
