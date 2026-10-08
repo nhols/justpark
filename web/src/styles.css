@@ -288,6 +288,8 @@ html[data-theme="dark"] .booking-band-label { color: #d0cec5; }
 .calendar-registration { display: block; width: 100%; overflow: hidden; color: var(--event-ink) !important; white-space: nowrap; text-overflow: ellipsis; font: 700 11px ui-monospace, SFMono-Regular, Menlo, monospace; }
 
 .recharts-text { fill: #89918d; font-size: 11px; }
+/* Recharts makes charts focusable for keyboard access; hide the focus box it gets on click/tap. */
+.recharts-wrapper, .recharts-wrapper :focus { outline: none; }
 
 @media (max-width: 900px) {
   .shell { padding: 0 20px; }
