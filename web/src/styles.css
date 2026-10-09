@@ -43,7 +43,7 @@ button, input { font: inherit; }
 button { color: inherit; }
 a { color: var(--green); text-decoration: none; }
 
-.shell { width: 100%; max-width: 1500px; min-width: 0; min-height: 100vh; margin: auto; padding: 0 42px; overflow-x: hidden; }
+.shell { --gutter: 42px; width: 100%; max-width: 1500px; min-width: 0; min-height: 100vh; margin: auto; padding: 0 max(var(--gutter), env(safe-area-inset-right)) 0 max(var(--gutter), env(safe-area-inset-left)); overflow-x: hidden; }
 .topbar { height: 96px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
 .brand { display: flex; gap: 12px; align-items: center; color: var(--ink); font: 700 18px "Manrope"; }
 .brand > span:last-child { display: grid; }
@@ -292,7 +292,7 @@ html[data-theme="dark"] .booking-band-label { color: #d0cec5; }
 .recharts-wrapper, .recharts-wrapper :focus { outline: none; }
 
 @media (max-width: 900px) {
-  .shell { padding: 0 20px; }
+  .shell { --gutter: 20px; }
   .metrics.three, .highlights { grid-template-columns: 1fr 1fr; }
   .freshness small { display: none; }
   .panel-title { align-items: stretch; flex-direction: column; }
@@ -300,7 +300,8 @@ html[data-theme="dark"] .booking-band-label { color: #d0cec5; }
 }
 
 @media (max-width: 620px) {
-  .shell { padding: 0 14px; }
+  :root { --bottom-nav: 60px; }
+  .shell { --gutter: 14px; }
   .topbar { height: 80px; }
   .brand { gap: 8px; font-size: 14px; }
   .brand small { display: none; }
@@ -309,9 +310,11 @@ html[data-theme="dark"] .booking-band-label { color: #d0cec5; }
   .freshness > span, .freshness small { display: none; }
   .freshness strong { max-width: 100px; font-size: 10px; line-height: 1.2; }
   .freshness .icon-button { display: none; }
-  nav { justify-content: space-between; overflow: auto; }
-  nav button { padding: 10px 12px; }
+  .shell { padding-bottom: calc(var(--bottom-nav) + env(safe-area-inset-bottom)); }
+  nav { position: fixed; top: auto; bottom: 0; left: 0; right: 0; z-index: 40; height: calc(var(--bottom-nav) + env(safe-area-inset-bottom)); justify-content: space-around; align-items: center; padding: 0 8px env(safe-area-inset-bottom); border-top: 1px solid var(--line); background: color-mix(in srgb, var(--panel) 92%, transparent); }
+  nav button { flex: 0 1 56px; justify-content: center; height: 42px; padding: 0; }
   nav button span { display: none; }
+  .update-toast { bottom: calc(var(--bottom-nav) + 12px + env(safe-area-inset-bottom)); }
   main { padding-top: 12px; }
   .metrics.three, .highlights { grid-template-columns: 1fr; }
   .metric { min-height: 118px; }
