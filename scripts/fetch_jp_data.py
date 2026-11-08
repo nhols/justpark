@@ -3,6 +3,7 @@
 # dependencies = [
 #     "playwright",
 #     "boto3",
+#     "pynacl",
 # ]
 # ///
 
@@ -17,11 +18,13 @@ from pathlib import Path
 import boto3
 from playwright.async_api import async_playwright
 
+import jp_session
+
 BASE = "https://www.justpark.com"
 API = f"{BASE}/api/v5/bookings/received"
 
-# Required: path to saved storage_state and jp-api-key
-STATE_PATH = Path(os.getenv("JP_SESSION_STATE", "session_state.json")).resolve()
+# Required: saved storage_state (local path or sealed s3:// object) and jp-api-key
+STATE_URI = os.getenv("JP_SESSION_STATE", "session_state.json")
 JP_API_KEY = os.getenv("JP_API_KEY")
 
 PER_PAGE = int(os.getenv("JP_PER_PAGE", "150"))
@@ -37,17 +40,20 @@ def write_s3_data(data):
 
 
 async def main():
-    if not STATE_PATH.exists():
-        print(f"ERROR: session state not found at {STATE_PATH}", file=sys.stderr)
+    if not STATE_URI.startswith("s3://") and not Path(STATE_URI).exists():
+        print(f"ERROR: session state not found at {STATE_URI}", file=sys.stderr)
         sys.exit(2)
     if not JP_API_KEY:
         print("ERROR: set JP_API_KEY (value from request header)", file=sys.stderr)
         sys.exit(2)
 
+    state = jp_session.load(STATE_URI)
+
     async with async_playwright() as p:
         # Create a context that loads the saved cookies/localStorage
-        browser = await p.chromium.launch(headless=True)
-        ctx = await browser.new_context(storage_state=str(STATE_PATH))
+        browser = await p.chromium.launch(headless=True, channel=os.getenv("JP_BROWSER_CHANNEL"))
+        ctx = await browser.new_context(storage_state=state)
+        await jp_session.renew_if_needed(ctx, STATE_URI, state)
 
         all_items = []
         page_no = 1

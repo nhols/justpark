@@ -13,7 +13,7 @@ node_modules/
 
 downloads/
 .env
-session_state.json
+session_state*
 web/public/dashboard.json
 web/public/parking-observations/*
 web/vite.config.js
