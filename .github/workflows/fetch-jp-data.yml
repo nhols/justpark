@@ -5,6 +5,11 @@ on:
   repository_dispatch:
     types: [jp-email-received]
 
+# Runs share one rotating JustPark session, so never let two renew it at once.
+concurrency:
+  group: fetch-jp-data
+  cancel-in-progress: false
+
 jobs:
   fetch-data:
     runs-on: ubuntu-latest
@@ -31,14 +36,10 @@ jobs:
     - name: Set up Python
       run: uv python install 3.12
 
-    - name: Install Playwright browsers
+    - name: Install Python packages
       run: |
         uv venv --python 3.12
-        uv pip install playwright boto3
-        uv run playwright install --with-deps --only-shell chromium
-    - name: Create session_state.json from secret
-      run: |
-        echo '${{ secrets.JP_SESSION_STATE }}' > session_state.json
+        uv pip install playwright boto3 pynacl
     - name: Fetch JustPark data
       env:
         JP_API_KEY: ${{ secrets.JP_API_KEY }}
@@ -47,7 +48,9 @@ jobs:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
-        JP_SESSION_STATE: session_state.json
+        JP_SESSION_STATE: s3://${{ secrets.JP_S3_BUCKET }}/session/jp_session.sealed
+        JP_SESSION_KEY: ${{ secrets.JP_SESSION_KEY }}
+        JP_BROWSER_CHANNEL: chrome
 
       run: |
         uv run python scripts/fetch_jp_data.py
